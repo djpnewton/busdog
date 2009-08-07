@@ -1,5 +1,5 @@
 #include <windows.h>
-#include <busdogfilter.h>
+#include <BusDogCommon.h>
 #include <ntverp.h>
 
 #define VER_FILETYPE                VFT_DRV

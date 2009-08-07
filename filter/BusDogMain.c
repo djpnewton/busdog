@@ -1,4 +1,4 @@
-#include "busdogfilter.h"
+#include "BusDogCommon.h"
 
 //
 // Collection object is used to store all the FilterDevice objects so

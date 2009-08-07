@@ -23,7 +23,7 @@ INCLUDES=$(INCLUDES);..\..\inc
 
 C_DEFINES= $(C_DEFINES)  
 
-SOURCES= busdogfilter.c \
+SOURCES= BusDogMain.c \
          BusDogGeneric.c \
-         busdogfilter.rc
+         BusDog.rc
 
