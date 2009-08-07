@@ -133,102 +133,6 @@ Return Value:
     return status;
 }
 
-VOID
-PrintChars(
-    __in_ecount(CountChars) PCHAR BufferAddress,
-    __in ULONG CountChars
-    )
-{
-    PAGED_CODE();
-
-    if (CountChars) {
-
-        while (CountChars--) {
-
-            if (*BufferAddress > 31
-                 && *BufferAddress != 127) {
-
-                KdPrint (( "%c", *BufferAddress) );
-
-            } else {
-
-                KdPrint(( ".") );
-
-            }
-            BufferAddress++;
-        }
-        KdPrint (("\n"));
-    }
-    return;
-}
-
-#define FlagOn(F,SF) ( \
-    (((F) & (SF)))     \
-)
-
-NTSTATUS
-BusDogWdmDeviceRead (
-    IN WDFDEVICE Device,
-    IN PIRP Irp
-    )
-{
-    PBUSDOG_CONTEXT         context = GetBusDogContext(Device);
-
-    PIO_STACK_LOCATION stack = IoGetCurrentIrpStackLocation(Irp);
-
-
-    KdPrint(("BusDog - IRP_MJ_READ, Length: %d, stack->DeviceObject->Flags %d\n", stack->Parameters.Read.Length, stack->DeviceObject->Flags));
-
-    if (FlagOn(stack->DeviceObject->Flags, DO_BUFFERED_IO)) 
-    {
-        //buffer at Irp->AssociatedIrp.SystemBuffer
-        KdPrint(("         DO_BUFFERED_IO - Irp->AssociatedIrp.SystemBuffer: %d\n", Irp->AssociatedIrp.SystemBuffer));
-    }
-    else if (FlagOn(stack->DeviceObject->Flags, DO_DIRECT_IO)) 
-    {
-        PVOID buffer;
-
-        // buffer at Irp->MdlAddress
-        KdPrint(("         DO_DIRECT_IO - Irp->MdlAddress: %d\n", Irp->MdlAddress));
-
-        //         
-        // Map the physical pages described by the MDL into system space. 
-        // Note: double mapping the buffer this way causes lot of 
-        // system overhead for large size buffers. 
-        // 
-
-        buffer = MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority);
-
-        if (!buffer) 
-        {
-            //ntStatus = STATUS_INSUFFICIENT_RESOURCES;
-            //MmUnlockPages(mdl);
-            //IoFreeMdl(mdl);
-        }
-        else
-        {
-            // 
-            // Now you can safely read the data from the buffer.
-            //
-            KdPrint(("         Data: "));
-            PrintChars(buffer, MmGetMdlByteCount(Irp->MdlAddress));
-        }
-
-    }
-    else 
-    {
-        // buffer at Irp->UserBuffer 
-        KdPrint(("         Neither - Irp->UserBuffer: %d\n", Irp->UserBuffer));
-    }
-
-    //IoCompleteRequest(Irp, IO_NO_INCREMENT);
-    //return STATUS_SUCCESS;
-
-    IoSkipCurrentIrpStackLocation(Irp); 
-    return WdfDeviceWdmDispatchPreprocessedIrp(Device, Irp);
-    //return IoCallDriver(NextLowerDriverDeviceObject, Irp); 
-}
-
 NTSTATUS
 BusDogDeviceAdd(
     IN WDFDRIVER        Driver,
@@ -704,3 +608,62 @@ Return Value:
 
 
 #endif
+
+NTSTATUS
+BusDogWdmDeviceRead (
+    IN WDFDEVICE Device,
+    IN PIRP Irp
+    )
+{
+    PBUSDOG_CONTEXT         context = GetBusDogContext(Device);
+
+    PIO_STACK_LOCATION stack = IoGetCurrentIrpStackLocation(Irp);
+
+
+    KdPrint(("BusDog - IRP_MJ_READ, Length: %d, stack->DeviceObject->Flags %d\n", stack->Parameters.Read.Length, stack->DeviceObject->Flags));
+
+    if (FlagOn(stack->DeviceObject->Flags, DO_BUFFERED_IO)) 
+    {
+        //buffer at Irp->AssociatedIrp.SystemBuffer
+        KdPrint(("         DO_BUFFERED_IO - Irp->AssociatedIrp.SystemBuffer: %d\n", Irp->AssociatedIrp.SystemBuffer));
+    }
+    else if (FlagOn(stack->DeviceObject->Flags, DO_DIRECT_IO)) 
+    {
+        PVOID buffer;
+
+        // buffer at Irp->MdlAddress
+        KdPrint(("         DO_DIRECT_IO - Irp->MdlAddress: %d\n", Irp->MdlAddress));
+
+        //         
+        // Map the physical pages described by the MDL into system space. 
+        // Note: double mapping the buffer this way causes lot of 
+        // system overhead for large size buffers. 
+        // 
+
+        buffer = MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority);
+
+        if (!buffer) 
+        {
+            //ntStatus = STATUS_INSUFFICIENT_RESOURCES;
+            //MmUnlockPages(mdl);
+            //IoFreeMdl(mdl);
+        }
+        else
+        {
+            // 
+            // Now you can safely read the data from the buffer.
+            //
+            KdPrint(("         Data: "));
+            PrintChars(buffer, MmGetMdlByteCount(Irp->MdlAddress));
+        }
+
+    }
+    else 
+    {
+        // buffer at Irp->UserBuffer 
+        KdPrint(("         Neither - Irp->UserBuffer: %d\n", Irp->UserBuffer));
+    }
+
+    IoSkipCurrentIrpStackLocation(Irp); 
+    return WdfDeviceWdmDispatchPreprocessedIrp(Device, Irp);
+}

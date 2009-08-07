@@ -1,0 +1,3 @@
+this program was adapted from source code at http://benoit.papillault.free.fr/usbsnoop/
+
+Thanks to Benoit Papillault

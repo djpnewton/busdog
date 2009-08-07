@@ -5,7 +5,18 @@
 #if !defined(_BUSDOG_FILTER_H_)
 #define _BUSDOG_FILTER_H_
 
+//
+// String definitions
+//
+
 #define DRIVERNAME "busdog.sys: "
+
+#define NTDEVICE_NAME_STRING      L"\\Device\\BusDogFilter"
+#define SYMBOLIC_NAME_STRING      L"\\DosDevices\\BusDogFilter"
+
+//
+// Struct definitions
+//
 
 typedef struct _BUSDOG_CONTEXT {
     ULONG     SerialNo;
@@ -13,9 +24,6 @@ typedef struct _BUSDOG_CONTEXT {
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(BUSDOG_CONTEXT,
                                         GetBusDogContext)
-
-#define NTDEVICE_NAME_STRING      L"\\Device\\BusDogFilter"
-#define SYMBOLIC_NAME_STRING      L"\\DosDevices\\BusDogFilter"
 
 typedef struct _CONTROL_DEVICE_EXTENSION {
 
@@ -25,6 +33,10 @@ typedef struct _CONTROL_DEVICE_EXTENSION {
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(CONTROL_DEVICE_EXTENSION,
                                         ControlGetData)
+
+//
+// Function definitions
+//
 
 DRIVER_INITIALIZE DriverEntry;
 
@@ -47,5 +59,25 @@ BusDogDeleteControlDevice(
     );
 
 #endif
+
+NTSTATUS
+BusDogWdmDeviceRead (
+    IN WDFDEVICE Device,
+    IN PIRP Irp
+    );
+
+VOID
+PrintChars(
+    __in_ecount(CountChars) PCHAR BufferAddress,
+    __in ULONG CountChars
+    );
+
+//
+// Helper macros
+//
+
+#define FlagOn(F,SF) ( \
+    (((F) & (SF)))     \
+)
 
 #endif
