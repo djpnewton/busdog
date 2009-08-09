@@ -198,11 +198,11 @@ Return Value:
 
 
     //
-    // Lets see if we can hook into some read IRPs
+    // Lets see if we can hook into some IRPs
     //
     status = WdfDeviceInitAssignWdmIrpPreprocessCallback(
                                             DeviceInit,
-                                            BusDogWdmDeviceRead,
+                                            BusDogWdmDeviceReadWrite,
                                             IRP_MJ_READ,
                                             NULL, // pointer minor function table
                                             0); // number of entries in the table
@@ -217,6 +217,22 @@ Return Value:
         status = STATUS_SUCCESS;
     }
 
+    status = WdfDeviceInitAssignWdmIrpPreprocessCallback(
+                                            DeviceInit,
+                                            BusDogWdmDeviceReadWrite,
+                                            IRP_MJ_WRITE,
+                                            NULL, // pointer minor function table
+                                            0); // number of entries in the table
+    if (!NT_SUCCESS(status)) {
+        KdPrint( ("WdfDeviceInitAssignWdmIrpPreprocessCallback failed with status 0x%x\n",
+                                status));
+
+        //
+        // Let us not fail AddDevice just because we weren't able to hook up
+        // the callback
+        //
+        status = STATUS_SUCCESS;
+    }
 
 
 
@@ -610,7 +626,7 @@ Return Value:
 #endif
 
 NTSTATUS
-BusDogWdmDeviceRead (
+BusDogWdmDeviceReadWrite (
     IN WDFDEVICE Device,
     IN PIRP Irp
     )
@@ -620,7 +636,15 @@ BusDogWdmDeviceRead (
     PIO_STACK_LOCATION stack = IoGetCurrentIrpStackLocation(Irp);
 
 
-    KdPrint(("BusDog - IRP_MJ_READ, Length: %d, stack->DeviceObject->Flags %d\n", stack->Parameters.Read.Length, stack->DeviceObject->Flags));
+
+    if (stack->MajorFunction == IRP_MJ_READ)
+    {
+        KdPrint(("BusDog - IRP_MJ_READ, Length: %d\n", stack->Parameters.Read.Length));
+    }
+    else if (stack->MajorFunction == IRP_MJ_WRITE)
+    {
+        KdPrint(("BusDog - IRP_MJ_WRITE, Length: %d\n", stack->Parameters.Write.Length));
+    }
 
     if (FlagOn(stack->DeviceObject->Flags, DO_BUFFERED_IO)) 
     {

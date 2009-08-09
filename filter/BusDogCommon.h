@@ -61,7 +61,7 @@ BusDogDeleteControlDevice(
 #endif
 
 NTSTATUS
-BusDogWdmDeviceRead (
+BusDogWdmDeviceReadWrite (
     IN WDFDEVICE Device,
     IN PIRP Irp
     );
