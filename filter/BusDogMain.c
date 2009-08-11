@@ -682,7 +682,7 @@ Return Value:
 
         context = BusDogGetDeviceContext(hFilterDevice);
 
-        KdPrint(("Serial No: %d\n", context->SerialNo));
+        KdPrint(("%d - Serial No: %d\n", i, context->SerialNo));
     }
 
     WdfWaitLockRelease(BusDogDeviceCollectionLock);
