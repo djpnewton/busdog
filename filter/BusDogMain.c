@@ -72,7 +72,7 @@ Return Value:
     WDF_OBJECT_ATTRIBUTES colAttributes;
     WDFDRIVER   hDriver;
 
-    KdPrint(("BusDog Filter Driver - Driver Framework Edition.\n"));
+    KdPrint(("BusDog Filter Driver - DriverEntry\n"));
     KdPrint(("Built %s %s\n", __DATE__, __TIME__));
 
     //
@@ -89,6 +89,8 @@ Return Value:
         &config,
         BusDogDeviceAdd
     );
+
+    config.EvtDriverUnload = BusDogDriverUnload;
 
     //
     // Create a framework driver object to represent our driver.
@@ -133,6 +135,14 @@ Return Value:
     return status;
 }
 
+VOID
+BusDogDriverUnload (
+    IN WDFDRIVER  Driver
+    )
+{
+    KdPrint(("BusDog Filter Driver - DriverUnload.\n"));
+}
+
 NTSTATUS
 BusDogDeviceAdd(
     IN WDFDRIVER        Driver,
@@ -167,6 +177,7 @@ Return Value:
     WDFDEVICE               device;
     ULONG                   serialNo;
     ULONG                   returnSize;
+    WDF_IO_QUEUE_CONFIG     ioQueueConfig;
 
     PAGED_CODE ();
 
@@ -262,8 +273,66 @@ Return Value:
         return status;
     }
 
-    context = GetBusDogContext(device);
+    //
+    // Get our filter context
+    //
+
+    context = BusDogGetDeviceContext(device);
+
+    //
+    // Initialize our context
+    //
+    context->MagicNumber = DEVICE_CONTEXT_MAGIC;
     context->SerialNo = serialNo;
+
+    // Figure out where we'll be sending all our requests
+    //  once we're done with them
+    context->TargetToSendRequestsTo = WdfDeviceGetIoTarget(device);
+    
+
+#ifndef WDM_PREPROCESS
+
+    //
+    // Now that this step is completed, we can create our default queue.
+    //  This queue will allow us to pick off any I/O requests
+    //  that we may be interested in before they are forwarded
+    //  to the target device.
+    //
+
+    WDF_IO_QUEUE_CONFIG_INIT_DEFAULT_QUEUE(&ioQueueConfig,
+                                           WdfIoQueueDispatchParallel);
+
+    //
+    // We just want reads and writes for now...
+    //
+
+    ioQueueConfig.EvtIoRead = BusDogIoRead;
+    ioQueueConfig.EvtIoWrite = BusDogIoWrite;
+
+    //
+    // Create the queue...
+    //
+    status = WdfIoQueueCreate(device,
+                              &ioQueueConfig,
+                              WDF_NO_OBJECT_ATTRIBUTES,
+                              NULL);
+
+    if (!NT_SUCCESS(status)) 
+    {
+        //
+        // No need to delete the WDFDEVICE we created, the framework
+        //  will clean that up for us.
+        //
+        KdPrint(("WdfIoQueueCreate failed with status code 0x%x\n", status));
+        
+        //
+        // Let us not fail AddDevice just because we weren't able to hook up
+        // the callback
+        //
+        status = STATUS_SUCCESS;
+    }    
+
+#endif
 
     //
     // Add this device to the FilterDevice collection.
@@ -611,7 +680,7 @@ Return Value:
 
         hFilterDevice = WdfCollectionGetItem(BusDogDeviceCollection, i);
 
-        context = GetBusDogContext(hFilterDevice);
+        context = BusDogGetDeviceContext(hFilterDevice);
 
         KdPrint(("Serial No: %d\n", context->SerialNo));
     }
@@ -633,7 +702,7 @@ BusDogWdmDeviceReadWrite (
     IN PIRP Irp
     )
 {
-    PBUSDOG_CONTEXT         context = GetBusDogContext(Device);
+    PBUSDOG_CONTEXT         context = BusDogGetDeviceContext(Device);
 
     PIO_STACK_LOCATION stack = IoGetCurrentIrpStackLocation(Irp);
 
@@ -692,6 +761,258 @@ BusDogWdmDeviceReadWrite (
 
     IoSkipCurrentIrpStackLocation(Irp); 
     return WdfDeviceWdmDispatchPreprocessedIrp(Device, Irp);
+}
+
+#else
+
+VOID
+BusDogIoRead(
+    IN WDFQUEUE Queue,
+    IN WDFREQUEST Request,
+    IN size_t Length
+    ) 
+{
+
+    PIRP                  wdmReadIrp;
+    NTSTATUS              status;
+    PCHAR                 dataBuffer = NULL;
+
+    //
+    // Retrieve some parameters of the request to print 
+    //  to the debugger
+    //
+    if (Length != 0) 
+    {
+
+        //
+        // This is a non-zero length transfer, retrieve
+        //  the data buffer.
+        //
+        status = WdfRequestRetrieveOutputBuffer(Request,
+                                                Length,
+                                                (PVOID *)&dataBuffer,
+                                                NULL);
+
+        if (!NT_SUCCESS(status)) 
+        {
+
+            //
+            // Not good. We'll still pass the request down
+            //  and let the next device decide what to do with 
+            //  this.
+            //
+            KdPrint(("RetrieveOutputBuffer failed - 0x%x\n", 
+                         status));
+        }
+
+    }
+
+    //
+    // Get the WDM IRP
+    //
+    wdmReadIrp = WdfRequestWdmGetIrp(Request);
+
+    //
+    // Print the info to the debugger
+    //
+    KdPrint(("BusDogIoRead: IRP-0x%p; Buffer-0x%p; Length-0x%x\n",
+        wdmReadIrp, dataBuffer, Length));
+
+
+    //
+    // For reads, we want completion info. Call the helper
+    //  routine to forward the request with a completion routine.
+    //
+    BusDogForwardRequestWithCompletion(WdfIoQueueGetDevice(Queue), 
+                                        Request,
+                                        BusDogReadComplete,
+                                        NULL);
+    return;
+
+}
+
+VOID
+BusDogReadComplete(
+    IN WDFREQUEST Request,
+    IN WDFIOTARGET Target,
+    IN PWDF_REQUEST_COMPLETION_PARAMS Params,
+    IN WDFCONTEXT Context
+    ) 
+{
+
+    PIRP                  wdmReadIrp;
+
+
+    //
+    // Get the IRP back
+    //
+    wdmReadIrp = WdfRequestWdmGetIrp(Request);
+
+    //
+    // And print the information to the debugger
+    //
+    KdPrint(("BusDogReadComplete: IRP-0x%p; Status-0x%x; Information-0x%x\n",
+        wdmReadIrp, Params->IoStatus.Status, 
+        Params->IoStatus.Information));
+
+    //
+    // Restart completion processing.
+    //
+    WdfRequestComplete(Request, Params->IoStatus.Status);
+    
+}
+
+VOID
+BusDogIoWrite(
+    IN WDFQUEUE Queue,
+    IN WDFREQUEST Request,
+    IN size_t Length
+    ) 
+{
+
+    NTSTATUS                 status;
+    PUCHAR                   dataBuffer = NULL;
+    PIRP                     wdmWriteIrp;
+
+    //
+    // Retrieve some parameters of the request to print
+    //  to the debugger
+    //
+    if (Length != 0) 
+    {
+
+        //
+        // This is a non-zero length transfer, retrieve
+        //  the data buffer.
+        //
+
+        status = WdfRequestRetrieveInputBuffer(Request,
+                                               Length,
+                                               (PVOID *)&dataBuffer,
+                                               NULL);
+
+        if (!NT_SUCCESS(status)) 
+        {
+            //
+            // Not good. We'll still pass the request down
+            //  and let the next device decide what to do with
+            //  this.
+            //
+            KdPrint(("RetrieveInputBuffer failed - 0x%x\n",
+                         status));
+        }
+
+    }
+
+    //
+    // Get the WDM IRP
+    //
+    wdmWriteIrp = WdfRequestWdmGetIrp(Request);
+
+    //
+    // Print the info to the debugger
+    //
+    KdPrint(("BusDogIoWrite: IRP-0x%p; Buffer-0x%p; Length-0x%x\n",
+        wdmWriteIrp, dataBuffer, Length));
+
+    //
+    // For simplicity sake, we'll just send and forget writes
+    //
+    BusDogForwardRequest(WdfIoQueueGetDevice(Queue), 
+                          Request);
+
+    return;
+}
+
+VOID
+BusDogForwardRequest(
+    IN WDFDEVICE Device,
+    IN WDFREQUEST Request
+    ) 
+{
+
+    WDF_REQUEST_SEND_OPTIONS options;
+    PBUSDOG_CONTEXT          context;
+    NTSTATUS                 status;
+
+    //
+    // Get the context that we setup during DeviceAdd processing
+    //
+    context = BusDogGetDeviceContext(Device);
+
+    ASSERT(IS_DEVICE_CONTEXT(context));
+
+    //
+    // We're just going to be passing this request on with 
+    //  zero regard for what happens to it. Therefore, we'll
+    //  use the WDF_REQUEST_SEND_OPTION_SEND_AND_FORGET option
+    //
+    WDF_REQUEST_SEND_OPTIONS_INIT(
+                        &options,
+                        WDF_REQUEST_SEND_OPTION_SEND_AND_FORGET);
+
+
+    //
+    // And send it!
+    // 
+    if (!WdfRequestSend(Request, 
+                        context->TargetToSendRequestsTo, 
+                        &options)) {
+
+        //
+        // Oops! Something bad happened, complete the request
+        //
+        status = WdfRequestGetStatus(Request);
+        KdPrint(("WdfRequestSend failed - 0x%x\n", status));
+        WdfRequestComplete(Request, status);
+    }
+    return;
+}
+
+VOID
+BusDogForwardRequestWithCompletion(
+    IN WDFDEVICE Device,
+    IN WDFREQUEST Request,
+    IN PFN_WDF_REQUEST_COMPLETION_ROUTINE CompletionRoutine,
+    IN WDFCONTEXT CompletionContext
+    ) {
+
+    PBUSDOG_CONTEXT context;
+    NTSTATUS        status;
+
+    //
+    // Get the context that we setup during DeviceAdd processing
+    //
+    context = BusDogGetDeviceContext(Device);
+
+    ASSERT(IS_DEVICE_CONTEXT(context));
+
+    //
+    // Setup the request for the next driver
+    //
+    WdfRequestFormatRequestUsingCurrentType(Request);
+
+    //
+    // Set the completion routine...
+    //
+    WdfRequestSetCompletionRoutine(Request,
+                                   CompletionRoutine,
+                                   CompletionContext);
+
+    //
+    // And send it!
+    // 
+    if (!WdfRequestSend(Request, 
+                        context->TargetToSendRequestsTo, 
+                        NULL)) {
+        //
+        // Oops! Something bad happened, complete the request
+        //
+        status = WdfRequestGetStatus(Request);
+        KdPrint(("WdfRequestSend failed - 0x%x\n", status));
+        WdfRequestComplete(Request, status);
+    }
+    return;
 }
 
 #endif
