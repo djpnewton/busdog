@@ -817,6 +817,8 @@ BusDogIoRead(
     //
     KdPrint(("BusDogIoRead: IRP-0x%p; Buffer-0x%p; Length-0x%x\n",
         wdmReadIrp, dataBuffer, Length));
+    KdPrint(("         Data: "));
+    PrintChars(dataBuffer, Length);
 
 
     //
@@ -914,6 +916,8 @@ BusDogIoWrite(
     //
     KdPrint(("BusDogIoWrite: IRP-0x%p; Buffer-0x%p; Length-0x%x\n",
         wdmWriteIrp, dataBuffer, Length));
+    KdPrint(("         Data: "));
+    PrintChars(dataBuffer, Length);
 
     //
     // For simplicity sake, we'll just send and forget writes
