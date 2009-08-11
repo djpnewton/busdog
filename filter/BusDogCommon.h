@@ -60,11 +60,15 @@ BusDogDeleteControlDevice(
 
 #endif
 
+#ifdef WDM_PREPROCESS
+
 NTSTATUS
 BusDogWdmDeviceReadWrite (
     IN WDFDEVICE Device,
     IN PIRP Irp
     );
+
+#endif
 
 VOID
 PrintChars(

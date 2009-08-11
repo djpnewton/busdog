@@ -12,6 +12,8 @@ INCLUDES=$(DDK_INC_PATH);..\..\Common;
 
 TARGETLIBS=$(SDK_LIB_PATH)\hid.lib \
            $(SDK_LIB_PATH)\setupapi.lib \
-           $(SDK_LIB_PATH)\comdlg32.lib
+           $(SDK_LIB_PATH)\comdlg32.lib \
+           $(DDK_LIB_PATH)\advapi32.lib
 
-SOURCES= main.cpp
+SOURCES= main.cpp \
+         service.cpp

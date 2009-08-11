@@ -195,7 +195,7 @@ Return Value:
     //
     WdfFdoInitSetFilter(DeviceInit);
 
-
+#ifdef WDM_PREPROCESS
 
     //
     // Lets see if we can hook into some IRPs
@@ -234,7 +234,7 @@ Return Value:
         status = STATUS_SUCCESS;
     }
 
-
+#endif
 
     //
     // Specify the size of device extension where we track per device
@@ -625,6 +625,8 @@ Return Value:
 
 #endif
 
+#ifdef WDM_PREPROCESS
+
 NTSTATUS
 BusDogWdmDeviceReadWrite (
     IN WDFDEVICE Device,
@@ -691,3 +693,5 @@ BusDogWdmDeviceReadWrite (
     IoSkipCurrentIrpStackLocation(Irp); 
     return WdfDeviceWdmDispatchPreprocessedIrp(Device, Irp);
 }
+
+#endif

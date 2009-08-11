@@ -1,3 +1,4 @@
 DIRS= \
 filter \
-console
+console \
+install
