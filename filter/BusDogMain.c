@@ -773,7 +773,6 @@ BusDogIoRead(
     ) 
 {
 
-    PIRP                  wdmReadIrp;
     NTSTATUS              status;
     PCHAR                 dataBuffer = NULL;
 
@@ -793,7 +792,15 @@ BusDogIoRead(
                                                 (PVOID *)&dataBuffer,
                                                 NULL);
 
-        if (!NT_SUCCESS(status)) 
+        if (NT_SUCCESS(status)) 
+        {
+            //
+            // Print the info to the debugger
+            //
+            KdPrint(("BusDogIoRead : Length-0x%x Data-", Length));
+            PrintChars(dataBuffer, Length);
+        }
+        else
         {
 
             //
@@ -806,20 +813,6 @@ BusDogIoRead(
         }
 
     }
-
-    //
-    // Get the WDM IRP
-    //
-    wdmReadIrp = WdfRequestWdmGetIrp(Request);
-
-    //
-    // Print the info to the debugger
-    //
-    KdPrint(("BusDogIoRead: IRP-0x%p; Buffer-0x%p; Length-0x%x\n",
-        wdmReadIrp, dataBuffer, Length));
-    KdPrint(("         Data: "));
-    PrintChars(dataBuffer, Length);
-
 
     //
     // For reads, we want completion info. Call the helper
@@ -842,19 +835,11 @@ BusDogReadComplete(
     ) 
 {
 
-    PIRP                  wdmReadIrp;
-
-
-    //
-    // Get the IRP back
-    //
-    wdmReadIrp = WdfRequestWdmGetIrp(Request);
-
     //
     // And print the information to the debugger
     //
-    KdPrint(("BusDogReadComplete: IRP-0x%p; Status-0x%x; Information-0x%x\n",
-        wdmReadIrp, Params->IoStatus.Status, 
+    KdPrint(("BusDogReadComplete: Status-0x%x; Information-0x%x\n",
+        Params->IoStatus.Status, 
         Params->IoStatus.Information));
 
     //
@@ -874,7 +859,6 @@ BusDogIoWrite(
 
     NTSTATUS                 status;
     PUCHAR                   dataBuffer = NULL;
-    PIRP                     wdmWriteIrp;
 
     //
     // Retrieve some parameters of the request to print
@@ -893,7 +877,15 @@ BusDogIoWrite(
                                                (PVOID *)&dataBuffer,
                                                NULL);
 
-        if (!NT_SUCCESS(status)) 
+        if (NT_SUCCESS(status)) 
+        {
+            //
+            // Print the info to the debugger
+            //
+            KdPrint(("BusDogIoWrite: Length-0x%x Data-", Length));
+            PrintChars(dataBuffer, Length);
+        }
+        else
         {
             //
             // Not good. We'll still pass the request down
@@ -905,19 +897,6 @@ BusDogIoWrite(
         }
 
     }
-
-    //
-    // Get the WDM IRP
-    //
-    wdmWriteIrp = WdfRequestWdmGetIrp(Request);
-
-    //
-    // Print the info to the debugger
-    //
-    KdPrint(("BusDogIoWrite: IRP-0x%p; Buffer-0x%p; Length-0x%x\n",
-        wdmWriteIrp, dataBuffer, Length));
-    KdPrint(("         Data: "));
-    PrintChars(dataBuffer, Length);
 
     //
     // For simplicity sake, we'll just send and forget writes
