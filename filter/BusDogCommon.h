@@ -2,8 +2,10 @@
 #include <ntddk.h>
 #include <wdf.h>
 
-#if !defined(_BUSDOG_FILTER_H_)
-#define _BUSDOG_FILTER_H_
+#include "BusDogUserCommon.h"
+
+#if !defined(_BUSDOG_COMMON_H_)
+#define _BUSDOG_COMMON_H_
 
 //
 // String definitions

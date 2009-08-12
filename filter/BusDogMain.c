@@ -8,6 +8,11 @@
 WDFCOLLECTION   BusDogDeviceCollection;
 WDFWAITLOCK     BusDogDeviceCollectionLock;
 
+//
+// BusDogTracking controls whether to log filter traces or not
+//
+BOOLEAN         BusDogTracking = TRUE;
+
 
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text (INIT, DriverEntry)
@@ -666,29 +671,136 @@ Return Value:
     UNREFERENCED_PARAMETER(Queue);
     UNREFERENCED_PARAMETER(OutputBufferLength);
     UNREFERENCED_PARAMETER(InputBufferLength);
-    UNREFERENCED_PARAMETER(IoControlCode);
 
     PAGED_CODE();
 
     KdPrint(("Ioctl recieved into filter control object.\n"));
 
-    WdfWaitLockAcquire(BusDogDeviceCollectionLock, NULL);
+    //
+    // What IOCTL have we got?
+    //
+    switch (IoControlCode)
+    {
+        case IOCTL_BUSDOG_GET_BUFFER:
 
-    noItems = WdfCollectionGetCount(BusDogDeviceCollection);
+            KdPrint(("BusDog - Sorry IOCTL_BUSDOG_GET_BUFFER not yet implemented\n"));
 
-    for(i=0; i<noItems ; i++) {
+            WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
 
-        hFilterDevice = WdfCollectionGetItem(BusDogDeviceCollection, i);
+            return;
 
-        context = BusDogGetDeviceContext(hFilterDevice);
+        case IOCTL_BUSDOG_START_TRACK:
 
-        KdPrint(("%d - Serial No: %d\n", i, context->SerialNo));
+            //
+            // Set global tracking var
+ 
+            KdPrint(("BusDog - Tracking enabled\n"));
+
+            BusDogTracking = TRUE;
+
+            WdfRequestComplete(Request, STATUS_SUCCESS);
+
+            return;
+
+        case IOCTL_BUSDOG_STOP_TRACK:
+
+            //
+            // Set global tracking var
+            //
+            
+            KdPrint(("BusDog - Tracking disabled\n"));
+
+            BusDogTracking = FALSE;
+
+            WdfRequestComplete(Request, STATUS_SUCCESS);
+            
+            return;
+
+        case IOCTL_BUSDOG_PRINT_DEVICES: 
+
+            WdfWaitLockAcquire(BusDogDeviceCollectionLock, NULL);
+
+            noItems = WdfCollectionGetCount(BusDogDeviceCollection);
+
+            for(i=0; i<noItems ; i++) {
+
+                NTSTATUS status;
+                WDF_OBJECT_ATTRIBUTES attributes;
+                WDFMEMORY memory;
+                size_t bufferLength;
+                UNICODE_STRING hardwareId;
+
+                //
+                // Get our device and context
+                //
+
+                hFilterDevice = WdfCollectionGetItem(BusDogDeviceCollection, i);
+
+                context = BusDogGetDeviceContext(hFilterDevice);
+
+                //
+                // Put the hardware id of a device into a unicode string
+                //
+
+                WDF_OBJECT_ATTRIBUTES_INIT(&attributes);
+                attributes.ParentObject = hFilterDevice;
+
+                status = WdfDeviceAllocAndQueryProperty(hFilterDevice,
+                                DevicePropertyHardwareID,
+                                NonPagedPool,
+                                &attributes,
+                                &memory
+                                );
+
+                if (!NT_SUCCESS(status)) 
+                {
+                    KdPrint(("WdfDeviceAllocAndQueryProperty failed - 0x%x\n",
+                            status));
+
+                    continue;
+                }
+
+                hardwareId.Buffer = WdfMemoryGetBuffer(memory, &bufferLength);
+
+                if (hardwareId.Buffer == NULL) 
+                {   
+                    KdPrint(("WdfMemoryGetBuffer failed\n"));  
+                    
+                    continue;   
+                }   
+
+                hardwareId.MaximumLength = (USHORT) bufferLength;   
+                hardwareId.Length = (USHORT) bufferLength - sizeof(UNICODE_NULL);   
+                
+                //
+                // Print item
+                //
+                
+                //TODO: this UNICODE_STRING print is screwing up!
+                KdPrint(("%d - HardwareId: %wZ\n", i, &hardwareId));
+            }
+
+            WdfWaitLockRelease(BusDogDeviceCollectionLock);
+
+            WdfRequestCompleteWithInformation(Request, STATUS_SUCCESS, 0);
+
+            return;
+
+        case IOCTL_BUSDOG_SET_DEVICE_ACTIVE:
+
+            KdPrint(("BusDog - Sorry IOCTL_BUSDOG_SET_DEVICE_ACTIVE not yet implemented\n"));
+
+            WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
+
+
+            return;
+
+        default:
+
+            break;
     }
 
-    WdfWaitLockRelease(BusDogDeviceCollectionLock);
-
-
-    WdfRequestCompleteWithInformation(Request, STATUS_SUCCESS, 0);
+    WdfRequestComplete(Request, STATUS_INVALID_DEVICE_REQUEST);
 }
 
 
@@ -704,59 +816,60 @@ BusDogWdmDeviceReadWrite (
 {
     PBUSDOG_CONTEXT         context = BusDogGetDeviceContext(Device);
 
-    PIO_STACK_LOCATION stack = IoGetCurrentIrpStackLocation(Irp);
-
-
-
-    if (stack->MajorFunction == IRP_MJ_READ)
+    if (BusDogTracking)
     {
-        KdPrint(("BusDog - IRP_MJ_READ, Length: %d\n", stack->Parameters.Read.Length));
-    }
-    else if (stack->MajorFunction == IRP_MJ_WRITE)
-    {
-        KdPrint(("BusDog - IRP_MJ_WRITE, Length: %d\n", stack->Parameters.Write.Length));
-    }
+        PIO_STACK_LOCATION stack = IoGetCurrentIrpStackLocation(Irp);
 
-    if (FlagOn(stack->DeviceObject->Flags, DO_BUFFERED_IO)) 
-    {
-        //buffer at Irp->AssociatedIrp.SystemBuffer
-        KdPrint(("         DO_BUFFERED_IO - Irp->AssociatedIrp.SystemBuffer: %d\n", Irp->AssociatedIrp.SystemBuffer));
-    }
-    else if (FlagOn(stack->DeviceObject->Flags, DO_DIRECT_IO)) 
-    {
-        PVOID buffer;
-
-        // buffer at Irp->MdlAddress
-        KdPrint(("         DO_DIRECT_IO - Irp->MdlAddress: %d\n", Irp->MdlAddress));
-
-        //         
-        // Map the physical pages described by the MDL into system space. 
-        // Note: double mapping the buffer this way causes lot of 
-        // system overhead for large size buffers. 
-        // 
-
-        buffer = MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority);
-
-        if (!buffer) 
+        if (stack->MajorFunction == IRP_MJ_READ)
         {
-            //ntStatus = STATUS_INSUFFICIENT_RESOURCES;
-            //MmUnlockPages(mdl);
-            //IoFreeMdl(mdl);
+            KdPrint(("BusDog - IRP_MJ_READ, Length: %d\n", stack->Parameters.Read.Length));
         }
-        else
+        else if (stack->MajorFunction == IRP_MJ_WRITE)
         {
+            KdPrint(("BusDog - IRP_MJ_WRITE, Length: %d\n", stack->Parameters.Write.Length));
+        }
+
+        if (FlagOn(stack->DeviceObject->Flags, DO_BUFFERED_IO)) 
+        {
+            //buffer at Irp->AssociatedIrp.SystemBuffer
+            KdPrint(("         DO_BUFFERED_IO - Irp->AssociatedIrp.SystemBuffer: %d\n", Irp->AssociatedIrp.SystemBuffer));
+        }
+        else if (FlagOn(stack->DeviceObject->Flags, DO_DIRECT_IO)) 
+        {
+            PVOID buffer;
+
+            // buffer at Irp->MdlAddress
+            KdPrint(("         DO_DIRECT_IO - Irp->MdlAddress: %d\n", Irp->MdlAddress));
+
+            //         
+            // Map the physical pages described by the MDL into system space. 
+            // Note: double mapping the buffer this way causes lot of 
+            // system overhead for large size buffers. 
             // 
-            // Now you can safely read the data from the buffer.
-            //
-            KdPrint(("         Data: "));
-            PrintChars(buffer, MmGetMdlByteCount(Irp->MdlAddress));
-        }
 
-    }
-    else 
-    {
-        // buffer at Irp->UserBuffer 
-        KdPrint(("         Neither - Irp->UserBuffer: %d\n", Irp->UserBuffer));
+            buffer = MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority);
+
+            if (!buffer) 
+            {
+                //ntStatus = STATUS_INSUFFICIENT_RESOURCES;
+                //MmUnlockPages(mdl);
+                //IoFreeMdl(mdl);
+            }
+            else
+            {
+                // 
+                // Now you can safely read the data from the buffer.
+                //
+                KdPrint(("         Data: "));
+                PrintChars(buffer, MmGetMdlByteCount(Irp->MdlAddress));
+            }
+
+        }
+        else 
+        {
+            // buffer at Irp->UserBuffer 
+            KdPrint(("         Neither - Irp->UserBuffer: %d\n", Irp->UserBuffer));
+        }
     }
 
     IoSkipCurrentIrpStackLocation(Irp); 
@@ -776,42 +889,45 @@ BusDogIoRead(
     NTSTATUS              status;
     PCHAR                 dataBuffer = NULL;
 
-    //
-    // Retrieve some parameters of the request to print 
-    //  to the debugger
-    //
-    if (Length != 0) 
+    if (BusDogTracking)
     {
-
         //
-        // This is a non-zero length transfer, retrieve
-        //  the data buffer.
+        // Retrieve some parameters of the request to print 
+        //  to the debugger
         //
-        status = WdfRequestRetrieveOutputBuffer(Request,
-                                                Length,
-                                                (PVOID *)&dataBuffer,
-                                                NULL);
-
-        if (NT_SUCCESS(status)) 
-        {
-            //
-            // Print the info to the debugger
-            //
-            KdPrint(("BusDogIoRead : Length-0x%x Data-", Length));
-            PrintChars(dataBuffer, Length);
-        }
-        else
+        if (Length != 0) 
         {
 
             //
-            // Not good. We'll still pass the request down
-            //  and let the next device decide what to do with 
-            //  this.
+            // This is a non-zero length transfer, retrieve
+            //  the data buffer.
             //
-            KdPrint(("RetrieveOutputBuffer failed - 0x%x\n", 
-                         status));
-        }
+            status = WdfRequestRetrieveOutputBuffer(Request,
+                    Length,
+                    (PVOID *)&dataBuffer,
+                    NULL);
 
+            if (NT_SUCCESS(status)) 
+            {
+                //
+                // Print the info to the debugger
+                //
+                KdPrint(("BusDogIoRead : Length-0x%x Data-", Length));
+                PrintChars(dataBuffer, Length);
+            }
+            else
+            {
+
+                //
+                // Not good. We'll still pass the request down
+                //  and let the next device decide what to do with 
+                //  this.
+                //
+                KdPrint(("RetrieveOutputBuffer failed - 0x%x\n", 
+                            status));
+            }
+
+        }
     }
 
     //
@@ -835,12 +951,15 @@ BusDogReadComplete(
     ) 
 {
 
-    //
-    // And print the information to the debugger
-    //
-    KdPrint(("BusDogReadComplete: Status-0x%x; Information-0x%x\n",
-        Params->IoStatus.Status, 
-        Params->IoStatus.Information));
+    if (BusDogTracking)
+    {
+        //
+        // And print the information to the debugger
+        //
+        KdPrint(("BusDogReadComplete: Status-0x%x; Information-0x%x\n",
+                    Params->IoStatus.Status, 
+                    Params->IoStatus.Information));
+    }
 
     //
     // Restart completion processing.
@@ -860,42 +979,45 @@ BusDogIoWrite(
     NTSTATUS                 status;
     PUCHAR                   dataBuffer = NULL;
 
-    //
-    // Retrieve some parameters of the request to print
-    //  to the debugger
-    //
-    if (Length != 0) 
+    if (BusDogTracking)
     {
-
         //
-        // This is a non-zero length transfer, retrieve
-        //  the data buffer.
+        // Retrieve some parameters of the request to print
+        //  to the debugger
         //
-
-        status = WdfRequestRetrieveInputBuffer(Request,
-                                               Length,
-                                               (PVOID *)&dataBuffer,
-                                               NULL);
-
-        if (NT_SUCCESS(status)) 
+        if (Length != 0) 
         {
-            //
-            // Print the info to the debugger
-            //
-            KdPrint(("BusDogIoWrite: Length-0x%x Data-", Length));
-            PrintChars(dataBuffer, Length);
-        }
-        else
-        {
-            //
-            // Not good. We'll still pass the request down
-            //  and let the next device decide what to do with
-            //  this.
-            //
-            KdPrint(("RetrieveInputBuffer failed - 0x%x\n",
-                         status));
-        }
 
+            //
+            // This is a non-zero length transfer, retrieve
+            //  the data buffer.
+            //
+
+            status = WdfRequestRetrieveInputBuffer(Request,
+                    Length,
+                    (PVOID *)&dataBuffer,
+                    NULL);
+
+            if (NT_SUCCESS(status)) 
+            {
+                //
+                // Print the info to the debugger
+                //
+                KdPrint(("BusDogIoWrite: Length-0x%x Data-", Length));
+                PrintChars(dataBuffer, Length);
+            }
+            else
+            {
+                //
+                // Not good. We'll still pass the request down
+                //  and let the next device decide what to do with
+                //  this.
+                //
+                KdPrint(("RetrieveInputBuffer failed - 0x%x\n",
+                            status));
+            }
+
+        }
     }
 
     //

@@ -8,7 +8,7 @@ USE_MSVCRT=1
 UMTYPE=console
 UMBASE=0x01000000
 
-INCLUDES=$(DDK_INC_PATH);
+INCLUDES=$(DDK_INC_PATH);..\..\filter\inc
 
 TARGETLIBS=$(SDK_LIB_PATH)\hid.lib \
            $(SDK_LIB_PATH)\setupapi.lib \
