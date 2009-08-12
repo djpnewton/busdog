@@ -44,7 +44,7 @@ AddReg = ClassFilter_AddReg
 ;
 ; Change UpperFilters to LowerFilters if this is a lower class filter.
 ;
-HKLM, System\CurrentControlSet\Control\Class\%USB_CLASS_GUID%, UpperFilters, 0x00010008, busdog
+HKLM, System\CurrentControlSet\Control\Class\%HID_GLASS_GUID%, UpperFilters, 0x00010008, busdog
 
 
 [DefaultInstall.NT.Services]
@@ -89,4 +89,4 @@ SERVICE_DEMAND_START  = 3
 SERVICE_ERROR_IGNORE  = 0
 REG_EXPAND_SZ         = 0x00020000
 REG_DWORD             = 0x00010001
-USB_CLASS_GUID        = {36FC9E60-C465-11CF-8056-444553540000}
+HID_GLASS_GUID        = {745A17A0-74D3-11D0-B6FE-00A0C90F57DA}  

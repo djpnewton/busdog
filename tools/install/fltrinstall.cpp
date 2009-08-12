@@ -58,6 +58,7 @@
 /////////////
 PWCHAR    ServiceName;
 PWCHAR    SYSFile;
+BOOLEAN   KMDF19;
 BOOLEAN   IsDemand;
 BOOLEAN   IsInstall;
 HMODULE   WdfCoinstaller;
@@ -110,19 +111,23 @@ DoRemove(
 // CONSTANTS //
 ///////////////
 #define USAGE_STRING "Usage: wdffltrinstall {-i|-r} servicename "  \
-                     "{-d|-b} driver.sys\n\n"                      \
+                     "{-d|-b} driver.sys {-kmdf17|-kmdf19}\n\n"    \
                      "  {-i|-r} -- Indicates whether this is an "  \
                      "installation or a removal\n"                 \
                      "  {-d|-b} -- Indicates whether this service "\
                      "should be installed as demand start or boot "\
-                     "start\n"
+                     "start\n"                                     \
+                     "  {-kmdf17|-kmdf19} -- Indicates whether "   \
+                     "this service should uses kmdf 1.7 "          \
+                     "coinstaller or kmdf 1.9\n"
 
 
 #define INSTALL_OR_REMOVE_OPT   1
 #define SERVICE_NAME_OPT        2
 #define DEMAND_OR_BOOT_OPT      3
 #define SYS_FILE_OPT            4
-#define ARGUMENT_COUNT          5
+#define KMDF_VERSION_OPT        5
+#define ARGUMENT_COUNT          6
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -271,6 +276,13 @@ ParseParameters(
     // 
     SYSFile = argv[SYS_FILE_OPT];
 
+
+    //
+    // KMDF version
+    //
+    KMDF19 = _wcsicmp(argv[KMDF_VERSION_OPT], L"-kmdf19") == 0;
+
+
     return TRUE;
 
 }
@@ -305,7 +317,7 @@ InitializeWdfCoinstaller(
     ) {
 
     WCHAR currentDir[512];
-    WCHAR coinstallerPath[512+sizeof("\\WdfCoInstaller01007.dll")];
+    WCHAR coinstallerPath[512+sizeof("\\WdfCoInstaller0100X.dll")];
 
     //
     // Only look in the current directory. Could be extended
@@ -316,7 +328,12 @@ InitializeWdfCoinstaller(
         return FALSE;
     }
 
-    swprintf(coinstallerPath, L"%ls\\WdfCoInstaller01007.dll", currentDir);
+    if (KMDF19) {
+        swprintf(coinstallerPath, L"%ls\\WdfCoInstaller01009.dll", currentDir);
+    }
+    else {
+        swprintf(coinstallerPath, L"%ls\\WdfCoInstaller01007.dll", currentDir);
+    }
 
     printf("Loading %ls...\n", coinstallerPath);
 

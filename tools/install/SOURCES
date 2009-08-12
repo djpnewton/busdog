@@ -10,8 +10,9 @@ UMENTRY=wmain
 USE_LIBCMT=1
 C_DEFINES=-DUNICODE=1
 
-
-INCLUDES=$(KMDF_INC_PATH)\1.7
+# I need this for wdfinstaller.h so I put both 1.7 and 1.9 
+# because I cant figure out how to check what kmdf version we are
+INCLUDES=$(KMDF_INC_PATH)\1.7;$(KMDF_INC_PATH)\1.9
 
 SOURCES=fltrinstall.cpp
 
