@@ -2,6 +2,8 @@
 #include <ntddk.h>
 #include <wdf.h>
 
+#define NT_INCLUDED
+#include "WinDef.h"
 #include "BusDogUserCommon.h"
 
 #if !defined(_BUSDOG_COMMON_H_)
@@ -27,6 +29,8 @@ typedef struct _BUSDOG_CONTEXT {
     ULONG       SerialNo;
 
     ULONG       MagicNumber;
+
+    BOOLEAN     FilterEnabled;
 
     WDFIOTARGET TargetToSendRequestsTo;
 

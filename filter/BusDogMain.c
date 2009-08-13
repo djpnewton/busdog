@@ -9,9 +9,9 @@ WDFCOLLECTION   BusDogDeviceCollection;
 WDFWAITLOCK     BusDogDeviceCollectionLock;
 
 //
-// BusDogTracking controls whether to log filter traces or not
+// BusDogFiltering controls whether to log filter traces or not
 //
-BOOLEAN         BusDogTracking = TRUE;
+BOOLEAN         BusDogFiltering = TRUE;
 
 
 #ifdef ALLOC_PRAGMA
@@ -289,6 +289,7 @@ Return Value:
     //
     context->MagicNumber = DEVICE_CONTEXT_MAGIC;
     context->SerialNo = serialNo;
+    context->FilterEnabled = FALSE;
 
     // Figure out where we'll be sending all our requests
     //  once we're done with them
@@ -663,14 +664,16 @@ Return Value:
 
 --*/
 {
-    ULONG               i;
-    ULONG               noItems;
-    WDFDEVICE           hFilterDevice;
-    PBUSDOG_CONTEXT     context;
+    ULONG                  i;
+    ULONG                  noItems;
+    WDFDEVICE              hFilterDevice;
+    PBUSDOG_CONTEXT        context;
+    PBUSDOG_FILTER_ENABLED filterEnabledBuffer;
+    size_t                 realLength;
+    size_t                 bytesRemaining;
 
     UNREFERENCED_PARAMETER(Queue);
     UNREFERENCED_PARAMETER(OutputBufferLength);
-    UNREFERENCED_PARAMETER(InputBufferLength);
 
     PAGED_CODE();
 
@@ -689,28 +692,28 @@ Return Value:
 
             return;
 
-        case IOCTL_BUSDOG_START_TRACK:
+        case IOCTL_BUSDOG_START_FILTERING:
 
             //
-            // Set global tracking var
+            // Set global filtering var
  
-            KdPrint(("BusDog - Tracking enabled\n"));
+            KdPrint(("BusDog - Filtering enabled\n"));
 
-            BusDogTracking = TRUE;
+            BusDogFiltering = TRUE;
 
             WdfRequestComplete(Request, STATUS_SUCCESS);
 
             return;
 
-        case IOCTL_BUSDOG_STOP_TRACK:
+        case IOCTL_BUSDOG_STOP_FILTERING:
 
             //
-            // Set global tracking var
+            // Set global filtering var
             //
             
-            KdPrint(("BusDog - Tracking disabled\n"));
+            KdPrint(("BusDog - Filtering disabled\n"));
 
-            BusDogTracking = FALSE;
+            BusDogFiltering = FALSE;
 
             WdfRequestComplete(Request, STATUS_SUCCESS);
             
@@ -786,14 +789,73 @@ Return Value:
 
             return;
 
-        case IOCTL_BUSDOG_SET_DEVICE_ACTIVE:
+        case IOCTL_BUSDOG_SET_DEVICE_FILTER_ENABLED:
+        {
+            NTSTATUS status = STATUS_SUCCESS;
 
-            KdPrint(("BusDog - Sorry IOCTL_BUSDOG_SET_DEVICE_ACTIVE not yet implemented\n"));
+            if (!InputBufferLength)
+            {
+                WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
 
-            WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
+                return;
+            }
 
+            //
+            // Get the input buffer...
+            //
+            status = WdfRequestRetrieveInputBuffer(Request,
+                    sizeof(BUSDOG_FILTER_ENABLED),
+                    (PVOID *)&filterEnabledBuffer,
+                    &realLength);
+
+            if (!NT_SUCCESS(status)) 
+            {
+                KdPrint(("WdfRequestRetrieveOutputBuffer failed - 0x%x\n",
+                            status));
+
+                WdfRequestComplete(Request, status);
+
+                return;
+            }
+
+
+            WdfWaitLockAcquire(BusDogDeviceCollectionLock, NULL);
+
+            noItems = WdfCollectionGetCount(BusDogDeviceCollection);
+
+            if (filterEnabledBuffer->DeviceId < noItems)
+            {
+
+                //
+                // Get our device and context
+                //
+
+                hFilterDevice = WdfCollectionGetItem(BusDogDeviceCollection, filterEnabledBuffer->DeviceId);
+
+                context = BusDogGetDeviceContext(hFilterDevice);
+
+                //
+                // Set filter enabled
+                //
+
+                context->FilterEnabled = filterEnabledBuffer->FilterEnabled;
+
+                KdPrint(("%d - FilterEnabled: %d\n", filterEnabledBuffer->DeviceId, context->FilterEnabled));
+
+            }
+            else
+            {
+                KdPrint(("BusDog - Error DeviceId (%d) is out of range\n", filterEnabledBuffer->DeviceId));
+
+                status = STATUS_INVALID_PARAMETER;
+            }
+
+            WdfWaitLockRelease(BusDogDeviceCollectionLock);
+
+            WdfRequestCompleteWithInformation(Request, status, realLength);
 
             return;
+        }
 
         default:
 
@@ -816,7 +878,7 @@ BusDogWdmDeviceReadWrite (
 {
     PBUSDOG_CONTEXT         context = BusDogGetDeviceContext(Device);
 
-    if (BusDogTracking)
+    if (BusDogFiltering && context->FilterEnabled)
     {
         PIO_STACK_LOCATION stack = IoGetCurrentIrpStackLocation(Irp);
 
@@ -888,8 +950,9 @@ BusDogIoRead(
 
     NTSTATUS              status;
     PCHAR                 dataBuffer = NULL;
+    PBUSDOG_CONTEXT       context = BusDogGetDeviceContext(WdfIoQueueGetDevice(Queue));
 
-    if (BusDogTracking)
+    if (BusDogFiltering && context->FilterEnabled)
     {
         //
         // Retrieve some parameters of the request to print 
@@ -950,8 +1013,9 @@ BusDogReadComplete(
     IN WDFCONTEXT Context
     ) 
 {
+    PBUSDOG_CONTEXT       context = BusDogGetDeviceContext(WdfIoQueueGetDevice(WdfRequestGetIoQueue(Request)));
 
-    if (BusDogTracking)
+    if (BusDogFiltering && context->FilterEnabled)
     {
         //
         // And print the information to the debugger
@@ -978,8 +1042,9 @@ BusDogIoWrite(
 
     NTSTATUS                 status;
     PUCHAR                   dataBuffer = NULL;
+    PBUSDOG_CONTEXT          context = BusDogGetDeviceContext(WdfIoQueueGetDevice(Queue));
 
-    if (BusDogTracking)
+    if (BusDogFiltering && context->FilterEnabled)
     {
         //
         // Retrieve some parameters of the request to print

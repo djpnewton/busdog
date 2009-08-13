@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <winioctl.h>
 
 //
@@ -21,13 +22,16 @@ typedef struct _IO_STATUS_BLOCK
 
 #include "BusDogUserCommon.h"
 
-#define USAGE_STRING "Usage: poke {-print|-start|-stop}\n\n"       \
-                     "  -print -- Send the \"print devices\" "     \
-                     "command\n"                                   \
-                     "  -start -- Send the \"start tracking\" "    \
-                     "command\n"                                   \
-                     "  -stop  -- Send the \"stop tracking\" "     \
-                     "command\n"                                   \
+#define USAGE_STRING "Usage: poke {-print|-start|-stop}\n\n"          \
+                     "       poke -setactive ${DEVICEID} TRUE|FALSE\n"\
+                     "  -print -- Send the \"print devices\" "        \
+                     "command\n"                                      \
+                     "  -start -- Send the \"start filtering\" "      \
+                     "command\n"                                      \
+                     "  -stop  -- Send the \"stop filtering\" "       \
+                     "command\n"                                      \
+                     "  -setenabled  --  Set the device filter "      \
+                     "specified by the Id to enabled or disabled"
 
 
 void __cdecl main(int argc, CHAR **argv) 
@@ -35,6 +39,9 @@ void __cdecl main(int argc, CHAR **argv)
     HANDLE hFilter;
     DWORD bytesRet;
     DWORD ioctl;
+    
+    char* inBuf = NULL;
+    DWORD inBufSize = 0;
 
     //
     // Determine ioctl
@@ -48,13 +55,32 @@ void __cdecl main(int argc, CHAR **argv)
         } 
         else if (strcmp(argv[1], "-start") == 0) 
         {
-            ioctl = IOCTL_BUSDOG_START_TRACK;
+            ioctl = IOCTL_BUSDOG_START_FILTERING;
         } 
         else if (strcmp(argv[1], "-stop") == 0) 
         {
-            ioctl = IOCTL_BUSDOG_STOP_TRACK;
+            ioctl = IOCTL_BUSDOG_STOP_FILTERING;
         } 
         else 
+        {
+            printf(USAGE_STRING);
+            return;
+        }
+    }
+    else if (argc == 4)
+    {
+        if (strcmp(argv[1], "-setenabled") == 0) 
+        {
+            BUSDOG_FILTER_ENABLED filterEnabled;
+
+            ioctl = IOCTL_BUSDOG_SET_DEVICE_FILTER_ENABLED;
+            filterEnabled.DeviceId = atoi(argv[2]);
+            filterEnabled.FilterEnabled = (BOOLEAN)atoi(argv[3]);
+            inBufSize = sizeof(BUSDOG_FILTER_ENABLED);
+            inBuf = malloc(inBufSize);
+            memcpy(inBuf, &filterEnabled, sizeof(BUSDOG_FILTER_ENABLED));
+        } 
+        else
         {
             printf(USAGE_STRING);
             return;
@@ -83,7 +109,7 @@ void __cdecl main(int argc, CHAR **argv)
     {
         printf("Couldn't open device - %d\n",
                 GetLastError());
-        return;
+        goto finish;
     }
 
     //
@@ -92,8 +118,8 @@ void __cdecl main(int argc, CHAR **argv)
 
     if (!DeviceIoControl(hFilter,
                          ioctl,
-                         0,
-                         0,
+                         inBuf,
+                         inBufSize,
                          0,
                          0,
                          &bytesRet,
@@ -102,8 +128,12 @@ void __cdecl main(int argc, CHAR **argv)
 
         printf("DeviceIoControl failed - %d\n",
                 GetLastError());
-        return;
     }
+    else
+        printf("DeviceIoControl succeeded\n");
 
-    printf("DeviceIoControl succeeded\n");
+finish:
+
+    if (inBuf != NULL)
+        free(inBuf);
 }

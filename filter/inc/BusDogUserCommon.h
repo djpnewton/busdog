@@ -15,12 +15,12 @@
                                          METHOD_OUT_DIRECT,  \
                                          FILE_READ_ACCESS)   \
 
-#define IOCTL_BUSDOG_START_TRACK CTL_CODE(FILE_DEVICE_BUSDOG,\
-                                          2050,               \
-                                          METHOD_BUFFERED,    \
-                                          FILE_READ_ACCESS)   \
+#define IOCTL_BUSDOG_START_FILTERING CTL_CODE(FILE_DEVICE_BUSDOG,\
+                                          2050,              \
+                                          METHOD_BUFFERED,   \
+                                          FILE_READ_ACCESS)  \
 
-#define IOCTL_BUSDOG_STOP_TRACK CTL_CODE(FILE_DEVICE_BUSDOG,\
+#define IOCTL_BUSDOG_STOP_FILTERING CTL_CODE(FILE_DEVICE_BUSDOG,\
                                          2051,               \
                                          METHOD_BUFFERED,    \
                                          FILE_READ_ACCESS)   \
@@ -31,10 +31,17 @@
                                          METHOD_BUFFERED,    \
                                          FILE_READ_ACCESS)   \
 
-#define IOCTL_BUSDOG_SET_DEVICE_ACTIVE CTL_CODE(FILE_DEVICE_BUSDOG,\
+#define IOCTL_BUSDOG_SET_DEVICE_FILTER_ENABLED CTL_CODE(FILE_DEVICE_BUSDOG,\
                                          2053,               \
                                          METHOD_BUFFERED,    \
-                                         FILE_WRITE_ACCESS)   \
+                                         FILE_WRITE_ACCESS)  \
+
+
+typedef struct 
+{
+    DWORD DeviceId;
+    BOOLEAN FilterEnabled;
+} BUSDOG_FILTER_ENABLED, *PBUSDOG_FILTER_ENABLED;
 
 #endif
 
