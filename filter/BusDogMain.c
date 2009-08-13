@@ -728,6 +728,7 @@ Return Value:
                 WDF_OBJECT_ATTRIBUTES attributes;
                 WDFMEMORY memory;
                 size_t bufferLength;
+                PVOID buffer;
                 UNICODE_STRING hardwareId;
 
                 //
@@ -760,23 +761,22 @@ Return Value:
                     continue;
                 }
 
-                hardwareId.Buffer = WdfMemoryGetBuffer(memory, &bufferLength);
+                buffer = WdfMemoryGetBuffer(memory, &bufferLength);
 
-                if (hardwareId.Buffer == NULL) 
+                if (buffer == NULL) 
                 {   
                     KdPrint(("WdfMemoryGetBuffer failed\n"));  
                     
                     continue;   
                 }   
 
-                hardwareId.MaximumLength = (USHORT) bufferLength;   
-                hardwareId.Length = (USHORT) bufferLength - sizeof(UNICODE_NULL);   
+                // assuming here that the string is null-terminated (hope this doesnt bite me later)
+                RtlInitUnicodeString(&hardwareId, buffer);
                 
                 //
                 // Print item
                 //
                 
-                //TODO: this UNICODE_STRING print is screwing up!
                 KdPrint(("%d - HardwareId: %wZ\n", i, &hardwareId));
             }
 
