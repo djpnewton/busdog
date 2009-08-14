@@ -2,6 +2,8 @@
 #include <ntddk.h>
 #include <wdf.h>
 
+#include "BusDogData.h"
+
 #define NT_INCLUDED
 #include "WinDef.h"
 #include "BusDogUserCommon.h"
@@ -29,6 +31,10 @@ typedef struct _BUSDOG_CONTEXT {
     ULONG       SerialNo;
 
     ULONG       MagicNumber;
+
+    BOOLEAN     HasDeviceId;
+
+    ULONG       DeviceId;
 
     BOOLEAN     FilterEnabled;
 
@@ -61,8 +67,6 @@ EVT_WDF_DRIVER_DEVICE_ADD BusDogDeviceAdd;
 EVT_WDF_DRIVER_UNLOAD BusDogDriverUnload;
 EVT_WDF_DEVICE_CONTEXT_CLEANUP BusDogDeviceContextCleanup;
 
-#ifdef IOCTL_INTERFACE
-
 EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL BusDogIoDeviceControl;
 
 NTSTATUS
@@ -74,8 +78,6 @@ VOID
 BusDogDeleteControlDevice(
     WDFDEVICE Device
     );
-
-#endif
 
 #ifdef WDM_PREPROCESS
 
@@ -125,10 +127,19 @@ BusDogForwardRequestWithCompletion(
 
 #endif
 
+//
+// BusDogGeneric.c
+//
+
 VOID
 PrintChars(
     __in_ecount(CountChars) PCHAR BufferAddress,
     __in ULONG CountChars
+    );
+
+VOID
+BusDogUpdateDeviceIds(
+    VOID
     );
 
 //

@@ -1,12 +1,5 @@
 #include "BusDogCommon.h"
 
-//
-// Collection object is used to store all the FilterDevice objects so
-// that any event callback routine can easily walk thru the list and pick a
-// specific instance of the device for filtering.
-//
-WDFCOLLECTION   BusDogDeviceCollection;
-WDFWAITLOCK     BusDogDeviceCollectionLock;
 
 //
 // BusDogFiltering controls whether to log filter traces or not
@@ -22,14 +15,6 @@ BOOLEAN         BusDogFiltering = TRUE;
 #endif
 
 //
-// Define IOCTL_INTERFACE in your sources file if  you want your
-// app to have private interaction with the filter driver. Read KB Q262305
-// for more information.
-//
-
-#ifdef IOCTL_INTERFACE
-
-//
 // ControlDevice provides a sideband communication to the filter from
 // usermode. This is required if the filter driver is sitting underneath
 // another driver that fails custom ioctls defined by the Filter driver.
@@ -42,8 +27,6 @@ WDFDEVICE       ControlDevice = NULL;
 #pragma alloc_text (PAGE, BusDogIoDeviceControl)
 #pragma alloc_text (PAGE, BusDogCreateControlDevice)
 #pragma alloc_text (PAGE, BusDogDeleteControlDevice)
-#endif
-
 #endif
 
 NTSTATUS
@@ -289,6 +272,8 @@ Return Value:
     //
     context->MagicNumber = DEVICE_CONTEXT_MAGIC;
     context->SerialNo = serialNo;
+    context->HasDeviceId = FALSE;
+    context->DeviceId = -1;
     context->FilterEnabled = FALSE;
 
     // Figure out where we'll be sending all our requests
@@ -355,9 +340,8 @@ Return Value:
     WdfWaitLockRelease(BusDogDeviceCollectionLock);
 
     //
-    // Create a control device if IOCTL_INTERFACE is defined in the sources file.
+    // Create a control device
     //
-#ifdef IOCTL_INTERFACE
 
     status = BusDogCreateControlDevice(device);
     if (!NT_SUCCESS(status)) {
@@ -370,7 +354,11 @@ Return Value:
         status = STATUS_SUCCESS;
     }
 
-#endif
+    //
+    // Update device ids
+    //
+
+    BusDogUpdateDeviceIds();
 
     return status;
 }
@@ -408,29 +396,25 @@ Return Value:
 
     count = WdfCollectionGetCount(BusDogDeviceCollection);
 
-#ifdef IOCTL_INTERFACE
-        if(count == 1)
-        {
-            //
-            // We are the last instance. So let us delete the control-device
-            // so that driver can unload when the FilterDevice is deleted.
-            // We absolutely have to do the deletion of control device with
-            // the collection lock acquired because we implicitly use this
-            // lock to protect ControlDevice global variable. We need to make
-            // sure another thread doesn't attempt to create while we are
-            // deleting the device.
-            //
-            BusDogDeleteControlDevice(Device);
-        }
-
-#endif
+    if (count == 1)
+    {
+        //
+        // We are the last instance. So let us delete the control-device
+        // so that driver can unload when the FilterDevice is deleted.
+        // We absolutely have to do the deletion of control device with
+        // the collection lock acquired because we implicitly use this
+        // lock to protect ControlDevice global variable. We need to make
+        // sure another thread doesn't attempt to create while we are
+        // deleting the device.
+        //
+        BusDogDeleteControlDevice(Device);
+    }
 
     WdfCollectionRemove(BusDogDeviceCollection, Device);
 
     WdfWaitLockRelease(BusDogDeviceCollectionLock);
-}
 
-#ifdef IOCTL_INTERFACE
+}
 
 NTSTATUS
 BusDogCreateControlDevice(
@@ -780,7 +764,7 @@ Return Value:
                 // Print item
                 //
                 
-                KdPrint(("%d - HardwareId: %wZ\n", i, &hardwareId));
+                KdPrint(("%2d - Enabled: %d, HardwareId: %wZ\n", context->DeviceId, context->FilterEnabled, &hardwareId));
             }
 
             WdfWaitLockRelease(BusDogDeviceCollectionLock);
@@ -792,6 +776,7 @@ Return Value:
         case IOCTL_BUSDOG_SET_DEVICE_FILTER_ENABLED:
         {
             NTSTATUS status = STATUS_SUCCESS;
+            BOOLEAN foundDevice = FALSE;
 
             if (!InputBufferLength)
             {
@@ -818,14 +803,16 @@ Return Value:
                 return;
             }
 
+            //
+            // Find device and enable/disable it
+            //
 
             WdfWaitLockAcquire(BusDogDeviceCollectionLock, NULL);
 
             noItems = WdfCollectionGetCount(BusDogDeviceCollection);
 
-            if (filterEnabledBuffer->DeviceId < noItems)
+            for (i = 0; i < noItems; i++)
             {
-
                 //
                 // Get our device and context
                 //
@@ -834,18 +821,27 @@ Return Value:
 
                 context = BusDogGetDeviceContext(hFilterDevice);
 
-                //
-                // Set filter enabled
-                //
 
-                context->FilterEnabled = filterEnabledBuffer->FilterEnabled;
+                if (filterEnabledBuffer->DeviceId == context->DeviceId)
+                {
+                    //
+                    // Set filter enabled
+                    //
 
-                KdPrint(("%d - FilterEnabled: %d\n", filterEnabledBuffer->DeviceId, context->FilterEnabled));
+                    context->FilterEnabled = filterEnabledBuffer->FilterEnabled;
 
+                    KdPrint(("%d - FilterEnabled: %d\n", filterEnabledBuffer->DeviceId, context->FilterEnabled));
+
+                    foundDevice = TRUE;
+
+                    break;
+
+                }
             }
-            else
+
+            if (!foundDevice)
             {
-                KdPrint(("BusDog - Error DeviceId (%d) is out of range\n", filterEnabledBuffer->DeviceId));
+                KdPrint(("BusDog - Error DeviceId (%d) is not valid\n", filterEnabledBuffer->DeviceId));
 
                 status = STATUS_INVALID_PARAMETER;
             }
@@ -866,8 +862,6 @@ Return Value:
 }
 
 
-#endif
-
 #ifdef WDM_PREPROCESS
 
 NTSTATUS
@@ -884,11 +878,11 @@ BusDogWdmDeviceReadWrite (
 
         if (stack->MajorFunction == IRP_MJ_READ)
         {
-            KdPrint(("BusDog - IRP_MJ_READ, Length: %d\n", stack->Parameters.Read.Length));
+            KdPrint(("BusDog %2d - IRP_MJ_READ, Length: %d\n", context->DeviceId, stack->Parameters.Read.Length));
         }
         else if (stack->MajorFunction == IRP_MJ_WRITE)
         {
-            KdPrint(("BusDog - IRP_MJ_WRITE, Length: %d\n", stack->Parameters.Write.Length));
+            KdPrint(("BusDog %2d - IRP_MJ_WRITE, Length: %d\n", context->DeviceId, stack->Parameters.Write.Length));
         }
 
         if (FlagOn(stack->DeviceObject->Flags, DO_BUFFERED_IO)) 
@@ -975,7 +969,7 @@ BusDogIoRead(
                 //
                 // Print the info to the debugger
                 //
-                KdPrint(("BusDogIoRead : Length-0x%x Data-", Length));
+                KdPrint(("BusDogIoRead       %2d: Length-0x%x Data-", context->DeviceId, Length));
                 PrintChars(dataBuffer, Length);
             }
             else
@@ -1020,7 +1014,8 @@ BusDogReadComplete(
         //
         // And print the information to the debugger
         //
-        KdPrint(("BusDogReadComplete: Status-0x%x; Information-0x%x\n",
+        KdPrint(("BusDogReadComplete %2d: Status-0x%x; Information-0x%x\n",
+                    context->DeviceId,
                     Params->IoStatus.Status, 
                     Params->IoStatus.Information));
     }
@@ -1068,7 +1063,7 @@ BusDogIoWrite(
                 //
                 // Print the info to the debugger
                 //
-                KdPrint(("BusDogIoWrite: Length-0x%x Data-", Length));
+                KdPrint(("BusDogIoWrite      %2d: Length-0x%x Data-", context->DeviceId, Length));
                 PrintChars(dataBuffer, Length);
             }
             else

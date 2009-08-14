@@ -3,8 +3,6 @@ TARGETTYPE=DRIVER
 
 
 
-C_DEFINES= $(C_DEFINES) -DIOCTL_INTERFACE=1
-
 KMDF_VERSION_MAJOR=1
 
 INF_NAME=busdog
@@ -25,5 +23,6 @@ C_DEFINES= $(C_DEFINES)
 
 SOURCES= BusDogMain.c \
          BusDogGeneric.c \
+         BusDogData.c \
          BusDog.rc
 
