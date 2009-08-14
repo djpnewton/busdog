@@ -22,17 +22,41 @@ typedef struct _IO_STATUS_BLOCK
 
 #include "BusDogUserCommon.h"
 
-#define USAGE_STRING "Usage: poke {-print|-start|-stop}\n\n"          \
-                     "       poke -setactive ${DEVICEID} TRUE|FALSE\n"\
-                     "  -print -- Send the \"print devices\" "        \
-                     "command\n"                                      \
-                     "  -start -- Send the \"start filtering\" "      \
-                     "command\n"                                      \
-                     "  -stop  -- Send the \"stop filtering\" "       \
-                     "command\n"                                      \
-                     "  -setenabled  --  Set the device filter "      \
-                     "specified by the Id to enabled or disabled"
+#define USAGE_STRING "Usage: poke {-print|-start|-stop}\n"               \
+                     "       poke -setenabled ${DEVICEID} TRUE|FALSE"    \
+                     "       poke -getbuffer\n\n"                        \
+                     "  -print -- Send the \"print devices\" "           \
+                     "command\n"                                         \
+                     "  -start -- Send the \"start filtering\" "         \
+                     "command\n"                                         \
+                     "  -stop  -- Send the \"stop filtering\" "          \
+                     "command\n"                                         \
+                     "  -setenabled  --  Set the device filter "         \
+                     "specified by the Id to enabled or disabled\n"      \
+                     "  -getbuffer   --  Get the current filter buffer"
 
+void printChars(char* traceBuf, DWORD bufSize)
+{
+    if (bufSize) {
+
+        while (bufSize--) {
+
+            if (*traceBuf > 31
+                 && *traceBuf != 127) {
+
+                printf( "%c", *traceBuf);
+
+            } else {
+
+                printf( ".");
+
+            }
+            traceBuf++;
+        }
+        printf("\n");
+    }
+    return;
+}
 
 void __cdecl main(int argc, CHAR **argv) 
 {
@@ -42,6 +66,8 @@ void __cdecl main(int argc, CHAR **argv)
     
     char* inBuf = NULL;
     DWORD inBufSize = 0;
+    char* outBuf = NULL;
+    DWORD outBufSize = 0;
 
     //
     // Determine ioctl
@@ -60,6 +86,12 @@ void __cdecl main(int argc, CHAR **argv)
         else if (strcmp(argv[1], "-stop") == 0) 
         {
             ioctl = IOCTL_BUSDOG_STOP_FILTERING;
+        } 
+        else if (strcmp(argv[1], "-getbuffer") == 0) 
+        {
+            ioctl = IOCTL_BUSDOG_GET_BUFFER;
+            outBufSize = 1024;
+            outBuf = malloc(outBufSize);
         } 
         else 
         {
@@ -120,8 +152,8 @@ void __cdecl main(int argc, CHAR **argv)
                          ioctl,
                          inBuf,
                          inBufSize,
-                         0,
-                         0,
+                         outBuf,
+                         outBufSize,
                          &bytesRet,
                          0)) 
     {
@@ -130,10 +162,43 @@ void __cdecl main(int argc, CHAR **argv)
                 GetLastError());
     }
     else
+    {
         printf("DeviceIoControl succeeded\n");
+
+        switch (ioctl)
+        {
+            case IOCTL_BUSDOG_GET_BUFFER:
+            {
+                DWORD index = 0;
+
+                while (index < outBufSize - sizeof(BUSDOG_FILTER_TRACE))
+                {
+                    BUSDOG_FILTER_TRACE* pTrace = (BUSDOG_FILTER_TRACE*)(outBuf + index);
+
+                    index += sizeof(BUSDOG_FILTER_TRACE);
+
+                    if (index < outBufSize - pTrace->BufferSize)
+                    {
+                        char* traceBuf = outBuf + index;
+
+                        printf("Got a trace: ");
+
+                        printChars(traceBuf, pTrace->BufferSize);
+                    }
+
+                    index += pTrace->BufferSize;
+                }
+
+                break;
+            }
+        }
+    }
 
 finish:
 
     if (inBuf != NULL)
         free(inBuf);
+
+    if (outBuf != NULL)
+        free(outBuf);
 }

@@ -36,12 +36,46 @@
                                          METHOD_BUFFERED,    \
                                          FILE_WRITE_ACCESS)  \
 
+//
+// struct definition for IOCTL_BUSDOG_SET_DEVICE_FILTER_ENABLED
+//
 
 typedef struct 
 {
     DWORD DeviceId;
     BOOLEAN FilterEnabled;
 } BUSDOG_FILTER_ENABLED, *PBUSDOG_FILTER_ENABLED;
+
+//
+// All of the following definitions are for use with 
+//  IOCTL_BUSDOG_GET_BUFFER
+// 
+
+//
+// Each entry in the request buffer structure is tagged
+//  with a request type, which indicates the type of 
+//  WDFREQUEST it represents
+//
+typedef enum _REQUEST_TYPE {
+
+    BusDogReadRequest = 0x2000,
+    BusDogWriteRequest,
+    BusDogDeviceControlRequest,
+    BusDogInternalDeviceControlRequest,
+    BusDogPnPRequest,
+    BusDogMaxRequestType
+
+} BUSDOG_REQUEST_TYPE;
+
+//
+// This is where we store each individual trace
+//
+typedef struct
+{
+    DWORD DeviceId;
+    BUSDOG_REQUEST_TYPE Type;
+    size_t BufferSize;
+} BUSDOG_FILTER_TRACE; // Data buffer follows this structure in memory
 
 #endif
 

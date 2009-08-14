@@ -648,10 +648,12 @@ Return Value:
 
 --*/
 {
+    NTSTATUS               status = STATUS_SUCCESS;
     ULONG                  i;
     ULONG                  noItems;
     WDFDEVICE              hFilterDevice;
     PBUSDOG_CONTEXT        context;
+    PVOID                  outputBuffer = NULL;
     PBUSDOG_FILTER_ENABLED filterEnabledBuffer;
     size_t                 realLength;
     size_t                 bytesRemaining;
@@ -670,9 +672,55 @@ Return Value:
     {
         case IOCTL_BUSDOG_GET_BUFFER:
 
-            KdPrint(("BusDog - Sorry IOCTL_BUSDOG_GET_BUFFER not yet implemented\n"));
-
+            // for safety
             WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
+            return;
+
+            //TODO the following section will bugcheck in a bad way!!!
+
+            if (InputBufferLength) 
+            {
+
+                KdPrint(("Sorry buddy...No input buffers allowed\n"));
+
+                WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
+
+                return;
+
+            }
+
+            KdPrint(("BusDog - Get buffer\n"));
+
+            //
+            // Get the output buffer...
+            //
+            status = WdfRequestRetrieveOutputBuffer(Request,
+                    100, // not sure yet
+                    outputBuffer,
+                    &realLength);
+
+            if (!NT_SUCCESS(status)) 
+            {
+                KdPrint(("WdfRequestRetrieveOutputBuffer failed - 0x%x\n",
+                            status));
+
+                WdfRequestComplete(Request, status);
+
+                return;
+            }
+
+            //
+            // Fill buffer with dummy data for now
+            //
+            RtlFillMemory(outputBuffer, realLength, 1);
+
+            //
+            // Yes! Return to the user, telling them how many bytes
+            //  we copied....
+            //
+            WdfRequestCompleteWithInformation(Request, 
+                                              STATUS_SUCCESS,
+                                              realLength);
 
             return;
 
@@ -775,7 +823,6 @@ Return Value:
 
         case IOCTL_BUSDOG_SET_DEVICE_FILTER_ENABLED:
         {
-            NTSTATUS status = STATUS_SUCCESS;
             BOOLEAN foundDevice = FALSE;
 
             if (!InputBufferLength)
