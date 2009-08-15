@@ -120,6 +120,13 @@ Return Value:
         return status;
     }
 
+    //
+    // Init trace list
+    //
+
+    status = BusDogTraceListInit(hDriver);
+
+
     return status;
 }
 
@@ -129,6 +136,13 @@ BusDogDriverUnload (
     )
 {
     KdPrint(("BusDog Filter Driver - DriverUnload.\n"));
+
+    //
+    // Clean up the trace list
+    //
+
+    BusDogTraceListCleanUp();
+
 }
 
 NTSTATUS
@@ -656,7 +670,7 @@ Return Value:
     PVOID                  outputBuffer = NULL;
     PBUSDOG_FILTER_ENABLED filterEnabledBuffer;
     size_t                 realLength;
-    size_t                 bytesRemaining;
+    size_t                 bytesWritten;
 
     UNREFERENCED_PARAMETER(Queue);
     UNREFERENCED_PARAMETER(OutputBufferLength);
@@ -689,7 +703,7 @@ Return Value:
             // Get the output buffer...
             //
             status = WdfRequestRetrieveOutputBuffer(Request,
-                    100, // not sure yet
+                    sizeof(BUSDOG_FILTER_TRACE),
                     &outputBuffer,
                     &realLength);
 
@@ -704,25 +718,10 @@ Return Value:
             }
 
             //
-            // Fill buffer with dummy data for now
+            // Fill buffer with traces
             //
-            {
-                BUSDOG_FILTER_TRACE trace = {
-                    99, 
-                    BusDogReadRequest, 
-                    realLength - sizeof(BUSDOG_FILTER_TRACE)
-                    };
-
-                RtlCopyMemory(
-                    outputBuffer, 
-                    &trace, 
-                    sizeof(BUSDOG_FILTER_TRACE));
-
-                RtlFillMemory(
-                    (PCHAR)outputBuffer + sizeof(BUSDOG_FILTER_TRACE), 
-                    realLength - sizeof(BUSDOG_FILTER_TRACE), 
-                    'a');
-            }
+            
+            bytesWritten = BusDogFillBufferWithTraces(outputBuffer, realLength);
 
             //
             // Yes! Return to the user, telling them how many bytes
@@ -730,7 +729,7 @@ Return Value:
             //
             WdfRequestCompleteWithInformation(Request, 
                                               STATUS_SUCCESS,
-                                              realLength);
+                                              bytesWritten);
 
             return;
 
@@ -1028,6 +1027,8 @@ BusDogIoRead(
                 //
                 KdPrint(("BusDogIoRead       %2d: Length-0x%x Data-", context->DeviceId, Length));
                 PrintChars(dataBuffer, Length);
+
+                BusDogAddTraceToList(context->DeviceId, BusDogReadRequest, dataBuffer, Length);
             }
             else
             {
@@ -1122,6 +1123,8 @@ BusDogIoWrite(
                 //
                 KdPrint(("BusDogIoWrite      %2d: Length-0x%x Data-", context->DeviceId, Length));
                 PrintChars(dataBuffer, Length);
+
+                BusDogAddTraceToList(context->DeviceId, BusDogWriteRequest, dataBuffer, Length);
             }
             else
             {

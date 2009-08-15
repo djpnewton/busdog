@@ -72,10 +72,14 @@ typedef enum _REQUEST_TYPE {
 //
 typedef struct
 {
+
     DWORD DeviceId;
+
     BUSDOG_REQUEST_TYPE Type;
+
     size_t BufferSize;
-} BUSDOG_FILTER_TRACE; // Data buffer follows this structure in memory
+
+} BUSDOG_FILTER_TRACE, *PBUSDOG_FILTER_TRACE; // Data buffer follows this structure in memory
 
 #endif
 

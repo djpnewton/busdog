@@ -24,5 +24,6 @@ C_DEFINES= $(C_DEFINES)
 SOURCES= BusDogMain.c \
          BusDogGeneric.c \
          BusDogData.c \
+         BusDogTraceList.c \
          BusDog.rc
 

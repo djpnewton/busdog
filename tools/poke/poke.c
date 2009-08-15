@@ -53,8 +53,10 @@ void printChars(char* traceBuf, DWORD bufSize)
             }
             traceBuf++;
         }
-        printf("\n");
     }
+    
+    printf("\n");
+
     return;
 }
 
@@ -171,7 +173,10 @@ void __cdecl main(int argc, CHAR **argv)
             {
                 DWORD index = 0;
 
-                while (index <= outBufSize - sizeof(BUSDOG_FILTER_TRACE))
+                printf("Bytes returned %d\n", bytesRet);
+
+                while (index <= outBufSize - sizeof(BUSDOG_FILTER_TRACE) &&
+                        index < bytesRet)
                 {
                     BUSDOG_FILTER_TRACE* pTrace = (BUSDOG_FILTER_TRACE*)(outBuf + index);
 

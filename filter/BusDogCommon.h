@@ -56,6 +56,29 @@ typedef struct _CONTROL_DEVICE_EXTENSION {
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(CONTROL_DEVICE_EXTENSION,
                                         ControlGetData)
 
+typedef struct Node 
+{
+
+    struct Node*            Prev;
+
+    PBUSDOG_FILTER_TRACE    Trace;
+
+    struct Node*            Next;
+
+} BUSDOG_FILTER_TRACE_LLISTITEM, *PBUSDOG_FILTER_TRACE_LLISTITEM;
+
+typedef struct
+{
+    ULONG                           Count;
+
+    PBUSDOG_FILTER_TRACE_LLISTITEM  Head;
+    
+    PBUSDOG_FILTER_TRACE_LLISTITEM  Tail;
+
+} BUSDOG_FILTER_TRACE_LLIST;
+
+#define BUSDOG_FILTER_TRACE_LIST_MAX_LENGTH 20
+
 //
 // Function definitions
 //
@@ -140,6 +163,34 @@ PrintChars(
 VOID
 BusDogUpdateDeviceIds(
     VOID
+    );
+
+//
+// BusDogTraceList.c
+//
+
+NTSTATUS
+BusDogTraceListInit(
+    WDFDRIVER Driver
+    );
+
+VOID
+BusDogTraceListCleanUp(
+    VOID
+    );
+
+VOID
+BusDogAddTraceToList(
+    ULONG DeviceId,
+    BUSDOG_REQUEST_TYPE Type,
+    PVOID TraceBuffer,
+    ULONG BufferLength
+    );
+
+size_t
+BusDogFillBufferWithTraces(
+    PVOID Buffer,
+    size_t BufferSize
     );
 
 //
