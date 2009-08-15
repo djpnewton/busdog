@@ -672,12 +672,6 @@ Return Value:
     {
         case IOCTL_BUSDOG_GET_BUFFER:
 
-            // for safety
-            WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
-            return;
-
-            //TODO the following section will bugcheck in a bad way!!!
-
             if (InputBufferLength) 
             {
 
@@ -696,7 +690,7 @@ Return Value:
             //
             status = WdfRequestRetrieveOutputBuffer(Request,
                     100, // not sure yet
-                    outputBuffer,
+                    &outputBuffer,
                     &realLength);
 
             if (!NT_SUCCESS(status)) 
@@ -712,7 +706,23 @@ Return Value:
             //
             // Fill buffer with dummy data for now
             //
-            RtlFillMemory(outputBuffer, realLength, 1);
+            {
+                BUSDOG_FILTER_TRACE trace = {
+                    99, 
+                    BusDogReadRequest, 
+                    realLength - sizeof(BUSDOG_FILTER_TRACE)
+                    };
+
+                RtlCopyMemory(
+                    outputBuffer, 
+                    &trace, 
+                    sizeof(BUSDOG_FILTER_TRACE));
+
+                RtlFillMemory(
+                    (PCHAR)outputBuffer + sizeof(BUSDOG_FILTER_TRACE), 
+                    realLength - sizeof(BUSDOG_FILTER_TRACE), 
+                    'a');
+            }
 
             //
             // Yes! Return to the user, telling them how many bytes

@@ -171,20 +171,22 @@ void __cdecl main(int argc, CHAR **argv)
             {
                 DWORD index = 0;
 
-                while (index < outBufSize - sizeof(BUSDOG_FILTER_TRACE))
+                while (index <= outBufSize - sizeof(BUSDOG_FILTER_TRACE))
                 {
                     BUSDOG_FILTER_TRACE* pTrace = (BUSDOG_FILTER_TRACE*)(outBuf + index);
 
                     index += sizeof(BUSDOG_FILTER_TRACE);
 
-                    if (index < outBufSize - pTrace->BufferSize)
+                    if (index <= outBufSize - pTrace->BufferSize)
                     {
                         char* traceBuf = outBuf + index;
 
-                        printf("Got a trace: ");
+                        printf("Got a trace (type: %d, size: %d): ", pTrace->Type, pTrace->BufferSize);
 
-                        printChars(traceBuf, pTrace->BufferSize);
+                        printChars(traceBuf, min(outBufSize - index, pTrace->BufferSize));
                     }
+                    else
+                        break;
 
                     index += pTrace->BufferSize;
                 }
