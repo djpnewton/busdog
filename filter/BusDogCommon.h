@@ -77,7 +77,7 @@ typedef struct
 
 } BUSDOG_FILTER_TRACE_LLIST;
 
-#define BUSDOG_FILTER_TRACE_LIST_MAX_LENGTH 20
+#define BUSDOG_FILTER_TRACE_LIST_MAX_LENGTH 100
 
 //
 // Function definitions

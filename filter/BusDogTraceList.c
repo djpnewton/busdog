@@ -62,14 +62,14 @@ BusDogTraceListCleanUp(
 
         ExFreePool(Node->Trace);
 
-        Node->Trace = NULL;
-
         ExFreePool(Node);
-
-        Node = NULL;
 
         BusDogTraceList.Count--;
     }
+
+    BusDogTraceList.Head = NULL;
+
+    BusDogTraceList.Tail = NULL;
 
     WdfWaitLockRelease(BusDogTraceListLock);
     
@@ -123,8 +123,6 @@ BusDogAddTraceToList(
         
         ExFreePool(pTrace);
 
-        pTrace = NULL;
-
         return;
     }
     else
@@ -164,7 +162,7 @@ BusDogAddTraceToList(
 
     if (BusDogTraceList.Count > BUSDOG_FILTER_TRACE_LIST_MAX_LENGTH)
     {
-        KdPrint(("On noes! We have overflow\n"));
+        KdPrint(("BusDog - On noes! We have overflow\n"));
 
         pTraceListItem = BusDogTraceList.Tail;
 
@@ -172,11 +170,7 @@ BusDogAddTraceToList(
 
         ExFreePool(pTraceListItem->Trace);
 
-        pTraceListItem->Trace = NULL;
-
         ExFreePool(pTraceListItem);
-
-        pTraceListItem = NULL;
 
         BusDogTraceList.Count--;
     }
@@ -205,21 +199,49 @@ __BusDogGetTraceFromList(
         {
             BusDogTraceList.Tail = Node->Prev;
         }
+        else if (BusDogTraceList.Count == 1)
+        {
+            BusDogTraceList.Tail = BusDogTraceList.Head;
+        }
         else
         {
-            BusDogTraceList.Tail = NULL;
+            KdPrint(("BusDogError, I dont think I should be here"));
         }
 
         pTrace = Node->Trace;
 
         ExFreePool(Node);
 
-        Node = NULL;
-
         BusDogTraceList.Count--;
+    }
+    else
+    {
+        //
+        // No traces left
+        //
+
+        BusDogTraceList.Head = NULL;
+
+        BusDogTraceList.Tail = NULL;
     }
 
     return pTrace;
+}
+
+//
+// Assumes trace list already locked
+//
+size_t
+__BusDogGetLastTraceSize(
+    VOID
+    )
+{
+    if (BusDogTraceList.Count > 0)
+    {
+        return sizeof(BUSDOG_FILTER_TRACE) + BusDogTraceList.Tail->Trace->BufferSize;
+    }
+        
+    return 0;
 }
 
 size_t
@@ -234,47 +256,42 @@ BusDogFillBufferWithTraces(
 
     size_t BytesWritten = 0;
 
-    BOOLEAN TraceFitsInBuffer = TRUE;
-
     PAGED_CODE ();
 
     WdfWaitLockAcquire(BusDogTraceListLock, NULL);
 
-    do
+    while (TRUE)
     {
+        TraceSize = __BusDogGetLastTraceSize();
+            
+        if (TraceSize > BufferSize - BytesWritten)
+        {
+            KdPrint(("BusDog - No room for next trace\n"));
+
+            break;
+        }
+
         pTrace = __BusDogGetTraceFromList();
 
-        if (pTrace != NULL)
+        if (pTrace == NULL)
         {
-            KdPrint(("Got trace %d\n", pTrace));
+            KdPrint(("BusDog - No more traces\n"));
 
-            TraceSize = sizeof(BUSDOG_FILTER_TRACE) + pTrace->BufferSize;
-
-            if (TraceSize < BufferSize - BytesWritten)
-            {
-                RtlCopyMemory((PCHAR)Buffer + BytesWritten,
-                        pTrace,
-                        TraceSize);
-
-                BytesWritten += TraceSize;
-
-                KdPrint(("Bytes written %d\n", BytesWritten));
-            }
-            else
-            {
-                // TODO
-                //hmm what to do with this trace already taken off the queue but no room for it ???
-                //
-                //
-                KdPrint(("Got trace but no where to put it!\n"));
-
-                TraceFitsInBuffer = FALSE;
-            }
-
-            ExFreePool(pTrace);
+            break;
         }
+
+        KdPrint(("BusDog - Got trace %d\n", pTrace));
+
+        RtlCopyMemory((PCHAR)Buffer + BytesWritten,
+                pTrace,
+                TraceSize);
+
+        BytesWritten += TraceSize;
+
+        KdPrint(("     Bytes written %d\n", BytesWritten));
+
+        ExFreePool(pTrace);
     }
-    while (pTrace != NULL && TraceFitsInBuffer);
 
     WdfWaitLockRelease(BusDogTraceListLock);
 
