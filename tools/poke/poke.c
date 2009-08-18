@@ -214,7 +214,7 @@ void __cdecl main(int argc, CHAR **argv)
                     {
                         PWCHAR hardwareId = (PWCHAR)(outBuf + index);
 
-                        printf("DeviceId: %2d, HardwareId: %S\n", pDevId->DeviceId, hardwareId);
+                        printf("DeviceId: %2d, Enabled: %d, HardwareId: %S\n", pDevId->DeviceId, pDevId->Enabled, hardwareId);
                     }
                     else
                         break;

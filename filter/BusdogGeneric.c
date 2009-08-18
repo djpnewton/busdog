@@ -208,6 +208,8 @@ BusDogFillBufferWithDeviceIds(
 
             pDeviceId->DeviceId = context->DeviceId;
 
+            pDeviceId->Enabled = context->FilterEnabled;
+
             pDeviceId->HardwareIdSize = hardwareId.Length;
 
             RtlCopyMemory((PCHAR)Buffer + *BytesWritten + sizeof(BUSDOG_DEVICE_ID),
