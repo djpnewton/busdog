@@ -36,6 +36,11 @@
                                          METHOD_BUFFERED,    \
                                          FILE_WRITE_ACCESS)  \
 
+#define IOCTL_BUSDOG_GET_DEVICE_LIST CTL_CODE(FILE_DEVICE_BUSDOG,\
+                                         2054,               \
+                                         METHOD_BUFFERED,    \
+                                         FILE_READ_ACCESS)   \
+
 //
 // struct definition for IOCTL_BUSDOG_SET_DEVICE_FILTER_ENABLED
 //
@@ -80,6 +85,19 @@ typedef struct
     size_t BufferSize;
 
 } BUSDOG_FILTER_TRACE, *PBUSDOG_FILTER_TRACE; // Data buffer follows this structure in memory
+
+//
+// struct definition for IOCTL_BUSDOG_GET_DEVICE_LIST
+//
+
+typedef struct
+{
+
+    DWORD DeviceId;
+
+    size_t HardwareIdSize;
+
+} BUSDOG_DEVICE_ID, *PBUSDOG_DEVICE_ID; // unicode string follows this structure in memory
 
 #endif
 

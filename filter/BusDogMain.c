@@ -671,6 +671,7 @@ Return Value:
     PBUSDOG_FILTER_ENABLED filterEnabledBuffer;
     size_t                 realLength;
     size_t                 bytesWritten;
+    size_t                 bytesNeeded;
 
     UNREFERENCED_PARAMETER(Queue);
     UNREFERENCED_PARAMETER(OutputBufferLength);
@@ -762,71 +763,9 @@ Return Value:
 
         case IOCTL_BUSDOG_PRINT_DEVICES: 
 
-            WdfWaitLockAcquire(BusDogDeviceCollectionLock, NULL);
+            KdPrint(("IOCTL_BUSDOG_PRINT_DEVICES is depreciated\n"));
 
-            noItems = WdfCollectionGetCount(BusDogDeviceCollection);
-
-            for(i=0; i<noItems ; i++) {
-
-                NTSTATUS status;
-                WDF_OBJECT_ATTRIBUTES attributes;
-                WDFMEMORY memory;
-                size_t bufferLength;
-                PVOID buffer;
-                UNICODE_STRING hardwareId;
-
-                //
-                // Get our device and context
-                //
-
-                hFilterDevice = WdfCollectionGetItem(BusDogDeviceCollection, i);
-
-                context = BusDogGetDeviceContext(hFilterDevice);
-
-                //
-                // Put the hardware id of a device into a unicode string
-                //
-
-                WDF_OBJECT_ATTRIBUTES_INIT(&attributes);
-                attributes.ParentObject = hFilterDevice;
-
-                status = WdfDeviceAllocAndQueryProperty(hFilterDevice,
-                                DevicePropertyHardwareID,
-                                NonPagedPool,
-                                &attributes,
-                                &memory
-                                );
-
-                if (!NT_SUCCESS(status)) 
-                {
-                    KdPrint(("WdfDeviceAllocAndQueryProperty failed - 0x%x\n",
-                            status));
-
-                    continue;
-                }
-
-                buffer = WdfMemoryGetBuffer(memory, &bufferLength);
-
-                if (buffer == NULL) 
-                {   
-                    KdPrint(("WdfMemoryGetBuffer failed\n"));  
-                    
-                    continue;   
-                }   
-
-                // assuming here that the string is null-terminated (hope this doesnt bite me later)
-                RtlInitUnicodeString(&hardwareId, buffer);
-                
-                //
-                // Print item
-                //
-                
-                KdPrint(("%2d - Enabled: %d, HardwareId: %wZ\n", context->DeviceId, context->FilterEnabled, &hardwareId));
-            }
-
-            WdfWaitLockRelease(BusDogDeviceCollectionLock);
-
-            WdfRequestCompleteWithInformation(Request, STATUS_SUCCESS, 0);
+            WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
 
             return;
 
@@ -908,6 +847,74 @@ Return Value:
 
             return;
         }
+
+        case IOCTL_BUSDOG_GET_DEVICE_LIST:
+
+            if (InputBufferLength) 
+            {
+
+                KdPrint(("Sorry buddy...No input buffers allowed\n"));
+
+                WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
+
+                return;
+
+            }
+
+            KdPrint(("BusDog - get device list\n"));
+
+
+            //
+            // Get the output buffer...
+            //
+            status = WdfRequestRetrieveOutputBuffer(Request,
+                    sizeof(BUSDOG_FILTER_TRACE),
+                    &outputBuffer,
+                    &realLength);
+
+            if (!NT_SUCCESS(status)) 
+            {
+                KdPrint(("WdfRequestRetrieveOutputBuffer failed - 0x%x\n",
+                            status));
+
+                WdfRequestComplete(Request, status);
+
+                return;
+            }
+
+            //
+            // Fill buffer with device ids
+            //
+            
+            if (BusDogFillBufferWithDeviceIds(outputBuffer, 
+                                              realLength, 
+                                              &bytesWritten,
+                                              &bytesNeeded)
+               )
+            {
+
+                //
+                // Yes! Return to the user, telling them how many bytes
+                //  we copied....
+                //
+                WdfRequestCompleteWithInformation(Request, 
+                        STATUS_SUCCESS,
+                        bytesWritten);
+
+            }
+            else
+            {
+
+                //
+                // No! Return to the user, telling them how many bytes
+                //  we need
+                //
+                WdfRequestCompleteWithInformation(Request, 
+                        STATUS_BUFFER_TOO_SMALL,
+                        bytesNeeded);
+            }
+
+            return;
 
         default:
 

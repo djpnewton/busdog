@@ -165,6 +165,14 @@ BusDogUpdateDeviceIds(
     VOID
     );
 
+BOOLEAN
+BusDogFillBufferWithDeviceIds(
+    PVOID Buffer,
+    size_t BufferSize,
+    size_t* BytesWritten,
+    size_t* BytesNeeded
+    );
+
 //
 // BusDogTraceList.c
 //

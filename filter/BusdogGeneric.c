@@ -100,3 +100,132 @@ BusDogUpdateDeviceIds(
 
     WdfWaitLockRelease(BusDogDeviceCollectionLock);
 }
+
+
+BOOLEAN
+BusDogFillBufferWithDeviceIds(
+    PVOID Buffer,
+    size_t BufferSize,
+    size_t* BytesWritten,
+    size_t* BytesNeeded
+    )
+{
+
+    ULONG         count;
+    ULONG         i;
+    BOOLEAN       Result = TRUE;
+
+    PAGED_CODE();
+
+    *BytesWritten = 0;
+    *BytesNeeded = 0;
+
+    //
+    // Aquire busdog device collection lock
+    //
+
+    WdfWaitLockAcquire(BusDogDeviceCollectionLock, NULL);
+
+    count = WdfCollectionGetCount(BusDogDeviceCollection);
+
+    for (i = 0; i < count ; i++) 
+    {
+
+        NTSTATUS status;
+        WDFDEVICE device;
+        PBUSDOG_CONTEXT context;
+        WDF_OBJECT_ATTRIBUTES attributes;
+        WDFMEMORY memory;
+        size_t hwidMemorySize;
+        PVOID hwidBuffer;
+        UNICODE_STRING hardwareId;
+        size_t deviceIdSize;
+        PBUSDOG_DEVICE_ID pDeviceId;
+
+        //
+        // Get our device and context
+        //
+
+        device = WdfCollectionGetItem(BusDogDeviceCollection, i);
+
+        context = BusDogGetDeviceContext(device);
+
+        //
+        // Put the hardware id of a device into a unicode string
+        //
+
+        WDF_OBJECT_ATTRIBUTES_INIT(&attributes);
+        attributes.ParentObject = device;
+
+        status = WdfDeviceAllocAndQueryProperty(device,
+                DevicePropertyHardwareID,
+                NonPagedPool,
+                &attributes,
+                &memory
+                );
+
+        if (!NT_SUCCESS(status)) 
+        {
+            KdPrint(("WdfDeviceAllocAndQueryProperty failed - 0x%x\n",
+                        status));
+
+            continue;
+        }
+
+        hwidBuffer = WdfMemoryGetBuffer(memory, &hwidMemorySize);
+
+        if (hwidBuffer == NULL) 
+        {   
+            KdPrint(("WdfMemoryGetBuffer failed\n"));  
+
+            continue;   
+        }   
+
+        // assuming here that the string is null-terminated (hope this doesnt bite me later)
+        RtlInitUnicodeString(&hardwareId, hwidBuffer);
+
+        //
+        // Print item
+        //
+
+        KdPrint(("%2d - Enabled: %d, HardwareId: %wZ\n", context->DeviceId, context->FilterEnabled, &hardwareId));
+
+        //
+        // Copy Item to user buffer
+        //
+
+        deviceIdSize = sizeof(BUSDOG_DEVICE_ID) + hardwareId.Length;
+
+        if (deviceIdSize > BufferSize - *BytesWritten)
+        {
+            Result = FALSE;
+
+            KdPrint(("BusDog - No room for device id\n"));
+        }
+        else
+        {
+            pDeviceId = (PBUSDOG_DEVICE_ID)((PCHAR)Buffer + *BytesWritten);
+
+            pDeviceId->DeviceId = context->DeviceId;
+
+            pDeviceId->HardwareIdSize = hardwareId.Length;
+
+            RtlCopyMemory((PCHAR)Buffer + *BytesWritten + sizeof(BUSDOG_DEVICE_ID),
+                          hardwareId.Buffer,
+                          hardwareId.Length);
+
+            *BytesWritten += deviceIdSize;
+        }
+
+        *BytesNeeded += deviceIdSize;
+
+    }
+    
+    //
+    // Release busdog device collection lock
+    //
+
+    WdfWaitLockRelease(BusDogDeviceCollectionLock);
+
+    return Result;
+}

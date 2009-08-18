@@ -22,11 +22,10 @@ typedef struct _IO_STATUS_BLOCK
 
 #include "BusDogUserCommon.h"
 
-#define USAGE_STRING "Usage: poke {-print|-start|-stop}\n"               \
-                     "       poke -setenabled ${DEVICEID} TRUE|FALSE"    \
+#define USAGE_STRING "Usage: poke {-getlist|-start|-stop}\n"             \
+                     "       poke -setenabled ${DEVICEID} TRUE|FALSE\n"  \
                      "       poke -getbuffer\n\n"                        \
-                     "  -print -- Send the \"print devices\" "           \
-                     "command\n"                                         \
+                     "  -getlist -- Get list of busdog devices\n"        \
                      "  -start -- Send the \"start filtering\" "         \
                      "command\n"                                         \
                      "  -stop  -- Send the \"stop filtering\" "          \
@@ -77,9 +76,11 @@ void __cdecl main(int argc, CHAR **argv)
 
     if (argc == 2)
     {
-        if (strcmp(argv[1], "-print") == 0) 
+        if (strcmp(argv[1], "-getlist") == 0) 
         {
-            ioctl = IOCTL_BUSDOG_PRINT_DEVICES;
+            ioctl = IOCTL_BUSDOG_GET_DEVICE_LIST;
+            outBufSize = 1024;
+            outBuf = malloc(outBufSize);
         } 
         else if (strcmp(argv[1], "-start") == 0) 
         {
@@ -160,12 +161,14 @@ void __cdecl main(int argc, CHAR **argv)
                          0)) 
     {
 
-        printf("DeviceIoControl failed - %d\n",
-                GetLastError());
+        printf("DeviceIoControl failed with %d status (supplimentary code %d)\n",
+                GetLastError(),
+                bytesRet);
     }
     else
     {
-        printf("DeviceIoControl succeeded\n");
+        printf("DeviceIoControl succeeded (%d)\n",
+                bytesRet);
 
         switch (ioctl)
         {
@@ -173,12 +176,10 @@ void __cdecl main(int argc, CHAR **argv)
             {
                 DWORD index = 0;
 
-                printf("Bytes returned %d\n", bytesRet);
-
                 while (index <= outBufSize - sizeof(BUSDOG_FILTER_TRACE) &&
                         index < bytesRet)
                 {
-                    BUSDOG_FILTER_TRACE* pTrace = (BUSDOG_FILTER_TRACE*)(outBuf + index);
+                    PBUSDOG_FILTER_TRACE pTrace = (PBUSDOG_FILTER_TRACE)(outBuf + index);
 
                     index += sizeof(BUSDOG_FILTER_TRACE);
 
@@ -186,7 +187,7 @@ void __cdecl main(int argc, CHAR **argv)
                     {
                         char* traceBuf = outBuf + index;
 
-                        printf("Got a trace (type: %d, size: %d): ", pTrace->Type, pTrace->BufferSize);
+                        printf("Trace (type: %d, size: %d): ", pTrace->Type, pTrace->BufferSize);
 
                         printChars(traceBuf, min(outBufSize - index, pTrace->BufferSize));
                     }
@@ -197,6 +198,29 @@ void __cdecl main(int argc, CHAR **argv)
                 }
 
                 break;
+            }
+            case IOCTL_BUSDOG_GET_DEVICE_LIST:
+            {
+                DWORD index = 0;
+
+                while (index <= outBufSize - sizeof(BUSDOG_DEVICE_ID) &&
+                        index < bytesRet)
+                {
+                    PBUSDOG_DEVICE_ID pDevId = (PBUSDOG_DEVICE_ID)(outBuf + index);
+
+                    index += sizeof(BUSDOG_DEVICE_ID);
+
+                    if (index <= outBufSize - pDevId->HardwareIdSize)
+                    {
+                        PWCHAR hardwareId = (PWCHAR)(outBuf + index);
+
+                        printf("DeviceId: %2d, HardwareId: %S\n", pDevId->DeviceId, hardwareId);
+                    }
+                    else
+                        break;
+
+                    index += pDevId->HardwareIdSize;
+                }
             }
         }
     }
