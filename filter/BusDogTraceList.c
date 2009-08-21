@@ -105,6 +105,8 @@ BusDogAddTraceToList(
 
         pTrace->Type = Type;
 
+        pTrace->Timestamp = BusDogGetTimeStamp();
+
         pTrace->BufferSize = BufferLength;
 
         RtlCopyMemory((PCHAR)pTrace + sizeof(BUSDOG_FILTER_TRACE),

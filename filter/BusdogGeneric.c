@@ -29,6 +29,31 @@ PrintChars(
     return;
 }
 
+BUSDOG_TIMESTAMP
+BusDogGetTimeStamp(
+    VOID
+    )
+{
+    LARGE_INTEGER Time, TimeFreq;
+    LONG tmp;
+    
+    BUSDOG_TIMESTAMP ts;
+
+    Time = KeQueryPerformanceCounter(&TimeFreq);
+    tmp = (LONG)(Time.QuadPart / TimeFreq.QuadPart);
+
+    ts.sec = tmp;
+    ts.usec = (LONG)((Time.QuadPart % TimeFreq.QuadPart) * 1000000 / TimeFreq.QuadPart);
+
+    if (ts.usec >= 1000000)
+    {
+        ts.sec++;
+        ts.usec -= 1000000;
+    }
+
+    return ts;
+}
+
 VOID
 BusDogUpdateDeviceIds(
     VOID

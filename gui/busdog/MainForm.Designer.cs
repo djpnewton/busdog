@@ -31,10 +31,10 @@
             this.components = new System.ComponentModel.Container();
             this.tabControl = new System.Windows.Forms.TabControl();
             this.tabSetup = new System.Windows.Forms.TabPage();
-            this.tabTrace = new System.Windows.Forms.TabPage();
             this.lbDevices = new System.Windows.Forms.CheckedListBox();
-            this.timer1 = new System.Windows.Forms.Timer(this.components);
+            this.tabTrace = new System.Windows.Forms.TabPage();
             this.lbTraces = new System.Windows.Forms.ListBox();
+            this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.tabControl.SuspendLayout();
             this.tabSetup.SuspendLayout();
             this.tabTrace.SuspendLayout();
@@ -62,6 +62,17 @@
             this.tabSetup.Text = "Setup";
             this.tabSetup.UseVisualStyleBackColor = true;
             // 
+            // lbDevices
+            // 
+            this.lbDevices.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.lbDevices.Font = new System.Drawing.Font("Courier New", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lbDevices.FormattingEnabled = true;
+            this.lbDevices.Location = new System.Drawing.Point(3, 3);
+            this.lbDevices.Name = "lbDevices";
+            this.lbDevices.Size = new System.Drawing.Size(278, 229);
+            this.lbDevices.TabIndex = 0;
+            this.lbDevices.ItemCheck += new System.Windows.Forms.ItemCheckEventHandler(this.lbDevices_ItemCheck);
+            // 
             // tabTrace
             // 
             this.tabTrace.Controls.Add(this.lbTraces);
@@ -73,29 +84,21 @@
             this.tabTrace.Text = "Trace";
             this.tabTrace.UseVisualStyleBackColor = true;
             // 
-            // lbDevices
+            // lbTraces
             // 
-            this.lbDevices.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.lbDevices.FormattingEnabled = true;
-            this.lbDevices.Location = new System.Drawing.Point(3, 3);
-            this.lbDevices.Name = "lbDevices";
-            this.lbDevices.Size = new System.Drawing.Size(278, 229);
-            this.lbDevices.TabIndex = 0;
-            this.lbDevices.ItemCheck += new System.Windows.Forms.ItemCheckEventHandler(this.lbDevices_ItemCheck);
+            this.lbTraces.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.lbTraces.Font = new System.Drawing.Font("Courier New", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lbTraces.FormattingEnabled = true;
+            this.lbTraces.ItemHeight = 14;
+            this.lbTraces.Location = new System.Drawing.Point(3, 3);
+            this.lbTraces.Name = "lbTraces";
+            this.lbTraces.Size = new System.Drawing.Size(278, 228);
+            this.lbTraces.TabIndex = 0;
             // 
             // timer1
             // 
             this.timer1.Enabled = true;
             this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
-            // 
-            // lbTraces
-            // 
-            this.lbTraces.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.lbTraces.FormattingEnabled = true;
-            this.lbTraces.Location = new System.Drawing.Point(3, 3);
-            this.lbTraces.Name = "lbTraces";
-            this.lbTraces.Size = new System.Drawing.Size(278, 225);
-            this.lbTraces.TabIndex = 0;
             // 
             // MainForm
             // 

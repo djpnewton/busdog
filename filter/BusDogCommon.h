@@ -160,6 +160,11 @@ PrintChars(
     __in ULONG CountChars
     );
 
+BUSDOG_TIMESTAMP
+BusDogGetTimeStamp(
+    VOID
+    );
+
 VOID
 BusDogUpdateDeviceIds(
     VOID

@@ -72,6 +72,15 @@ typedef enum _REQUEST_TYPE {
 
 } BUSDOG_REQUEST_TYPE;
 
+typedef struct
+{
+    // Seconds
+    LONG sec; 
+
+    // Microseconds
+    LONG usec;
+} BUSDOG_TIMESTAMP;
+
 //
 // This is where we store each individual trace
 //
@@ -81,6 +90,8 @@ typedef struct
     DWORD DeviceId;
 
     BUSDOG_REQUEST_TYPE Type;
+
+    BUSDOG_TIMESTAMP Timestamp;
 
     size_t BufferSize;
 

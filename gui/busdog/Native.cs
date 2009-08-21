@@ -22,7 +22,7 @@ namespace busdog
 
         public override string ToString()
         {
-            return HardwareId;
+            return string.Format("{0:D2}: {1}", DevId, HardwareId);
         }
     }
 
@@ -35,16 +35,25 @@ namespace busdog
         BusDogPnPRequest,
         BusDogMaxRequestType
     }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct BUSDOG_TIMESTAMP
+    {
+        public int Seconds;
+        public int USec;
+    }
         
     public struct FilterTrace
     {
         public uint  DeviceId;
         BUSDOG_REQUEST_TYPE Type;
+        BUSDOG_TIMESTAMP Timestamp;
         public byte[] Buffer;
-        public FilterTrace(uint devId, BUSDOG_REQUEST_TYPE type, byte[] buffer)
+        public FilterTrace(uint devId, BUSDOG_REQUEST_TYPE type, BUSDOG_TIMESTAMP timestamp, byte[] buffer)
         {
             DeviceId = devId;
             Type = type;
+            Timestamp = timestamp;
             Buffer = buffer;
         }
 
@@ -61,6 +70,11 @@ namespace busdog
             }
         }
 
+        string TimestampToStr()
+        {
+            return string.Format("{0}.{1:D6}", Timestamp.Seconds, Timestamp.USec);
+        }
+
         string BufToChars()
         {
             StringBuilder sb = new StringBuilder(Buffer.Length);
@@ -68,7 +82,7 @@ namespace busdog
             for (int i = 0; i < Buffer.Length; i++)
             {
                 byte b = Buffer[i];
-                if (b > 31 && b != 127)
+                if (b > 31 && b < 128)
                     sb[i] = (char)b;
                 else
                     sb[i] = '.';
@@ -78,7 +92,7 @@ namespace busdog
 
         public override string ToString()
         {
-            return string.Format("{0,2}: {1}: {2}", DeviceId, TypeToStr(), BufToChars());
+            return string.Format("{0:D2}: {1}: {2}: {3}", DeviceId, TypeToStr(), TimestampToStr(), BufToChars());
         }
     }
 
@@ -145,6 +159,7 @@ namespace busdog
         {
             public uint  DeviceId;
             public BUSDOG_REQUEST_TYPE Type;
+            public BUSDOG_TIMESTAMP Timestamp;
             public uint  BufferSize;
         }
 
@@ -293,7 +308,7 @@ namespace busdog
                     byte[] trace = new byte[filterTrace.BufferSize];
                     Marshal.Copy(new IntPtr(outBuf.ToInt32() + index), trace, 0, (int)filterTrace.BufferSize);
                     index += (int)filterTrace.BufferSize;
-                    filterTraces.Add(new FilterTrace(filterTrace.DeviceId, filterTrace.Type, trace));
+                    filterTraces.Add(new FilterTrace(filterTrace.DeviceId, filterTrace.Type, filterTrace.Timestamp, trace));
                 }        
             }
             else

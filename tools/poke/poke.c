@@ -187,7 +187,8 @@ void __cdecl main(int argc, CHAR **argv)
                     {
                         char* traceBuf = outBuf + index;
 
-                        printf("Trace (type: %d, size: %d): ", pTrace->Type, pTrace->BufferSize);
+                        printf("Trace (type: %d, sec: %d, usec: %d, size: %d): ", 
+                                pTrace->Type, pTrace->Timestamp.sec, pTrace->Timestamp.usec, pTrace->BufferSize);
 
                         printChars(traceBuf, min(outBufSize - index, pTrace->BufferSize));
                     }
