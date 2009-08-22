@@ -812,7 +812,7 @@ Return Value:
                 // Get our device and context
                 //
 
-                hFilterDevice = WdfCollectionGetItem(BusDogDeviceCollection, filterEnabledBuffer->DeviceId);
+                hFilterDevice = WdfCollectionGetItem(BusDogDeviceCollection, i);
 
                 context = BusDogGetDeviceContext(hFilterDevice);
 
@@ -838,7 +838,7 @@ Return Value:
             {
                 KdPrint(("BusDog - Error DeviceId (%d) is not valid\n", filterEnabledBuffer->DeviceId));
 
-                status = STATUS_INVALID_PARAMETER;
+                status = STATUS_NO_SUCH_DEVICE;
             }
 
             WdfWaitLockRelease(BusDogDeviceCollectionLock);
