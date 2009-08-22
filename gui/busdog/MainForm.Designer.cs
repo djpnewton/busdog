@@ -33,8 +33,14 @@
             this.tabSetup = new System.Windows.Forms.TabPage();
             this.lbDevices = new System.Windows.Forms.CheckedListBox();
             this.tabTrace = new System.Windows.Forms.TabPage();
-            this.lbTraces = new System.Windows.Forms.ListBox();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
+            this.lvTraces = new System.Windows.Forms.ListView();
+            this.chId = new System.Windows.Forms.ColumnHeader();
+            this.chType = new System.Windows.Forms.ColumnHeader();
+            this.chTimestamp = new System.Windows.Forms.ColumnHeader();
+            this.chLength = new System.Windows.Forms.ColumnHeader();
+            this.chHex = new System.Windows.Forms.ColumnHeader();
+            this.chAscii = new System.Windows.Forms.ColumnHeader();
             this.tabControl.SuspendLayout();
             this.tabSetup.SuspendLayout();
             this.tabTrace.SuspendLayout();
@@ -75,7 +81,7 @@
             // 
             // tabTrace
             // 
-            this.tabTrace.Controls.Add(this.lbTraces);
+            this.tabTrace.Controls.Add(this.lvTraces);
             this.tabTrace.Location = new System.Drawing.Point(4, 22);
             this.tabTrace.Name = "tabTrace";
             this.tabTrace.Padding = new System.Windows.Forms.Padding(3);
@@ -84,21 +90,52 @@
             this.tabTrace.Text = "Trace";
             this.tabTrace.UseVisualStyleBackColor = true;
             // 
-            // lbTraces
-            // 
-            this.lbTraces.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.lbTraces.Font = new System.Drawing.Font("Courier New", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lbTraces.FormattingEnabled = true;
-            this.lbTraces.ItemHeight = 14;
-            this.lbTraces.Location = new System.Drawing.Point(3, 3);
-            this.lbTraces.Name = "lbTraces";
-            this.lbTraces.Size = new System.Drawing.Size(278, 228);
-            this.lbTraces.TabIndex = 0;
-            // 
             // timer1
             // 
             this.timer1.Enabled = true;
             this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
+            // 
+            // lvTraces
+            // 
+            this.lvTraces.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.chId,
+            this.chType,
+            this.chTimestamp,
+            this.chLength,
+            this.chHex,
+            this.chAscii});
+            this.lvTraces.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.lvTraces.Font = new System.Drawing.Font("Courier New", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lvTraces.Location = new System.Drawing.Point(3, 3);
+            this.lvTraces.Name = "lvTraces";
+            this.lvTraces.Size = new System.Drawing.Size(278, 234);
+            this.lvTraces.TabIndex = 3;
+            this.lvTraces.UseCompatibleStateImageBehavior = false;
+            this.lvTraces.View = System.Windows.Forms.View.Details;
+            // 
+            // chId
+            // 
+            this.chId.Text = "Id";
+            // 
+            // chType
+            // 
+            this.chType.Text = "Type";
+            // 
+            // chTimestamp
+            // 
+            this.chTimestamp.Text = "Timestamp";
+            // 
+            // chLength
+            // 
+            this.chLength.Text = "Length";
+            // 
+            // chHex
+            // 
+            this.chHex.Text = "Hex";
+            // 
+            // chAscii
+            // 
+            this.chAscii.Text = "Ascii";
             // 
             // MainForm
             // 
@@ -122,7 +159,13 @@
         private System.Windows.Forms.TabPage tabTrace;
         private System.Windows.Forms.CheckedListBox lbDevices;
         private System.Windows.Forms.Timer timer1;
-        private System.Windows.Forms.ListBox lbTraces;
+        private System.Windows.Forms.ListView lvTraces;
+        private System.Windows.Forms.ColumnHeader chId;
+        private System.Windows.Forms.ColumnHeader chType;
+        private System.Windows.Forms.ColumnHeader chTimestamp;
+        private System.Windows.Forms.ColumnHeader chLength;
+        private System.Windows.Forms.ColumnHeader chHex;
+        private System.Windows.Forms.ColumnHeader chAscii;
     }
 }
 

@@ -42,10 +42,40 @@ namespace busdog
                 {
                     foreach (FilterTrace filterTrace in filterTraces)
                     {
-                        lbTraces.SelectedIndex = lbTraces.Items.Add(filterTrace);
+                        AddFilterTrace(filterTrace);
                     }
                 }
             }
+        }
+
+        private void AddFilterTrace(FilterTrace filterTrace)
+        {
+            // Create a new row.
+            ListViewItem item = new ListViewItem(filterTrace.DeviceId.ToString());
+
+            for (int i = 1; i < lvTraces.Columns.Count; i++)
+            {
+                switch (i)
+                {
+                    case 1:
+                        item.SubItems.Add(filterTrace.TypeToStr());
+                        break;
+                    case 2:
+                        item.SubItems.Add(filterTrace.TimestampToStr());
+                        break;
+                    case 3:
+                        item.SubItems.Add(filterTrace.Buffer.Length.ToString());
+                        break;
+                    case 4:
+                        item.SubItems.Add(filterTrace.BufToHex());
+                        break;
+                    case 5:
+                        item.SubItems.Add(filterTrace.BufToChars());
+                        break;
+                }
+            }
+
+            lvTraces.TopItem = lvTraces.Items.Add(item);
         }
     }
 }

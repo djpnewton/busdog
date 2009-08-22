@@ -46,8 +46,8 @@ namespace busdog
     public struct FilterTrace
     {
         public uint  DeviceId;
-        BUSDOG_REQUEST_TYPE Type;
-        BUSDOG_TIMESTAMP Timestamp;
+        public BUSDOG_REQUEST_TYPE Type;
+        public BUSDOG_TIMESTAMP Timestamp;
         public byte[] Buffer;
         public FilterTrace(uint devId, BUSDOG_REQUEST_TYPE type, BUSDOG_TIMESTAMP timestamp, byte[] buffer)
         {
@@ -57,7 +57,7 @@ namespace busdog
             Buffer = buffer;
         }
 
-        string TypeToStr()
+        public string TypeToStr()
         {
             switch (Type)
             {
@@ -70,12 +70,12 @@ namespace busdog
             }
         }
 
-        string TimestampToStr()
+        public string TimestampToStr()
         {
             return string.Format("{0}.{1:D6}", Timestamp.Seconds, Timestamp.USec);
         }
 
-        string BufToChars()
+        public string BufToChars()
         {
             StringBuilder sb = new StringBuilder(Buffer.Length);
             sb.Length = Buffer.Length;
@@ -86,6 +86,21 @@ namespace busdog
                     sb[i] = (char)b;
                 else
                     sb[i] = '.';
+            }
+            return sb.ToString();
+        }
+
+        public string BufToHex()
+        {
+            StringBuilder sb = new StringBuilder(Buffer.Length * 3 - 1);
+            sb.Length = Buffer.Length * 3 - 1;
+            for (int i = 0; i < Buffer.Length; i++)
+            {
+                string hex = String.Format("{0:x2}", Buffer[i]);
+                sb[i * 3] = hex[0];
+                sb[i * 3 + 1] = hex[1];
+                if (i < Buffer.Length - 1)
+                    sb[i * 3 + 2] = ' ';
             }
             return sb.ToString();
         }
