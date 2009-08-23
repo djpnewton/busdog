@@ -16,6 +16,28 @@ namespace busdog
 {
 	sealed internal partial class DeviceManagement
 	{
+        internal Boolean IsDeviceChild(string parentInstanceId, string childInstanceId)
+        {
+            IntPtr ptrParentDevNode, ptrChildDevNode;
+            if (CM_Locate_DevNode(out ptrParentDevNode, parentInstanceId, 0) == 0)
+            {
+                if (CM_Locate_DevNode(out ptrChildDevNode, childInstanceId, 0) == 0)
+                {
+                    IntPtr ptrChildCompare;
+                    if (CM_Get_Child(out ptrChildCompare, ptrParentDevNode.ToInt32(), 0) == 0)
+                    {
+                        while (ptrChildCompare.ToInt32() != ptrChildDevNode.ToInt32())
+                        {
+                            if (!(CM_Get_Sibling(out ptrChildCompare, ptrChildCompare.ToInt32(), 0) == 0))
+                                break;
+                        }
+                        return ptrChildCompare.ToInt32() != ptrChildDevNode.ToInt32();
+                    }
+                }
+            }
+            return false;
+        }
+
         Boolean GetRegProp(IntPtr deviceInfoSet, ref SP_DEVINFO_DATA devInfo, uint property, out string propertyVal)
         {
             uint RequiredSize = 0;
@@ -32,7 +54,24 @@ namespace busdog
             return propertyVal != null;
         }
 
-		internal Boolean FindDeviceProps(string physicalDeviceObjectName, out string hardwareId, out string description)
+        Boolean GetInstanceId(IntPtr deviceInfoSet, ref SP_DEVINFO_DATA devInfo, out string instanceId)
+        {
+            uint RequiredSize = 256;
+            instanceId = null;
+            IntPtr ptrBuf = Marshal.AllocHGlobal((int)RequiredSize);
+            if (SetupDiGetDeviceInstanceId(deviceInfoSet, ref devInfo, ptrBuf, RequiredSize, out RequiredSize))
+                instanceId = Marshal.PtrToStringAuto(ptrBuf);
+            else if (RequiredSize > 0)
+            {
+                Marshal.ReAllocHGlobal(ptrBuf, new IntPtr(RequiredSize));
+                if (SetupDiGetDeviceInstanceId(deviceInfoSet, ref devInfo, ptrBuf, RequiredSize, out RequiredSize))
+                    instanceId = Marshal.PtrToStringAuto(ptrBuf);
+            }
+            Marshal.FreeHGlobal(ptrBuf);
+            return instanceId != null;
+        }
+
+        internal Boolean FindDeviceProps(string physicalDeviceObjectName, out string hardwareId, out string description, out string instanceId)
 		{
 			IntPtr detailDataBuffer = IntPtr.Zero;
 			Boolean deviceFound;
@@ -43,6 +82,7 @@ namespace busdog
 
             hardwareId = null;
             description = null;
+            instanceId = null;
 
 			try
 			{
@@ -86,6 +126,7 @@ namespace busdog
                             {
                                 GetRegProp(deviceInfoSet, ref devInfo, (uint)SPDRP.SPDRP_HARDWAREID, out hardwareId);
                                 GetRegProp(deviceInfoSet, ref devInfo, (uint)SPDRP.SPDRP_DEVICEDESC, out description);
+                                GetInstanceId(deviceInfoSet, ref devInfo, out instanceId);
                                 deviceFound = true;
                                 break;
                             }

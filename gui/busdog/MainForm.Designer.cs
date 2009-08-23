@@ -31,9 +31,8 @@
             this.components = new System.ComponentModel.Container();
             this.tabControl = new System.Windows.Forms.TabControl();
             this.tabSetup = new System.Windows.Forms.TabPage();
-            this.lbDevices = new System.Windows.Forms.CheckedListBox();
+            this.tvDevices = new System.Windows.Forms.TreeView();
             this.tabTrace = new System.Windows.Forms.TabPage();
-            this.tmrTrace = new System.Windows.Forms.Timer(this.components);
             this.lvTraces = new System.Windows.Forms.ListView();
             this.chId = new System.Windows.Forms.ColumnHeader();
             this.chType = new System.Windows.Forms.ColumnHeader();
@@ -41,6 +40,7 @@
             this.chLength = new System.Windows.Forms.ColumnHeader();
             this.chHex = new System.Windows.Forms.ColumnHeader();
             this.chAscii = new System.Windows.Forms.ColumnHeader();
+            this.tmrTrace = new System.Windows.Forms.Timer(this.components);
             this.tmrDeviceChange = new System.Windows.Forms.Timer(this.components);
             this.tabControl.SuspendLayout();
             this.tabSetup.SuspendLayout();
@@ -60,7 +60,7 @@
             // 
             // tabSetup
             // 
-            this.tabSetup.Controls.Add(this.lbDevices);
+            this.tabSetup.Controls.Add(this.tvDevices);
             this.tabSetup.Location = new System.Drawing.Point(4, 22);
             this.tabSetup.Name = "tabSetup";
             this.tabSetup.Padding = new System.Windows.Forms.Padding(3);
@@ -69,16 +69,16 @@
             this.tabSetup.Text = "Setup";
             this.tabSetup.UseVisualStyleBackColor = true;
             // 
-            // lbDevices
+            // tvDevices
             // 
-            this.lbDevices.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.lbDevices.Font = new System.Drawing.Font("Courier New", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lbDevices.FormattingEnabled = true;
-            this.lbDevices.Location = new System.Drawing.Point(3, 3);
-            this.lbDevices.Name = "lbDevices";
-            this.lbDevices.Size = new System.Drawing.Size(278, 229);
-            this.lbDevices.TabIndex = 0;
-            this.lbDevices.ItemCheck += new System.Windows.Forms.ItemCheckEventHandler(this.lbDevices_ItemCheck);
+            this.tvDevices.CheckBoxes = true;
+            this.tvDevices.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tvDevices.Font = new System.Drawing.Font("Courier New", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.tvDevices.Location = new System.Drawing.Point(3, 3);
+            this.tvDevices.Name = "tvDevices";
+            this.tvDevices.Size = new System.Drawing.Size(278, 234);
+            this.tvDevices.TabIndex = 1;
+            this.tvDevices.AfterCheck += new System.Windows.Forms.TreeViewEventHandler(this.tvDevices_AfterCheck);
             // 
             // tabTrace
             // 
@@ -90,11 +90,6 @@
             this.tabTrace.TabIndex = 1;
             this.tabTrace.Text = "Trace";
             this.tabTrace.UseVisualStyleBackColor = true;
-            // 
-            // tmrTrace
-            // 
-            this.tmrTrace.Enabled = true;
-            this.tmrTrace.Tick += new System.EventHandler(this.tmrTrace_Tick);
             // 
             // lvTraces
             // 
@@ -142,6 +137,11 @@
             // 
             this.chAscii.Text = "Ascii";
             // 
+            // tmrTrace
+            // 
+            this.tmrTrace.Enabled = true;
+            this.tmrTrace.Tick += new System.EventHandler(this.tmrTrace_Tick);
+            // 
             // tmrDeviceChange
             // 
             this.tmrDeviceChange.Interval = 1000;
@@ -167,7 +167,6 @@
         private System.Windows.Forms.TabControl tabControl;
         private System.Windows.Forms.TabPage tabSetup;
         private System.Windows.Forms.TabPage tabTrace;
-        private System.Windows.Forms.CheckedListBox lbDevices;
         private System.Windows.Forms.Timer tmrTrace;
         private System.Windows.Forms.ListView lvTraces;
         private System.Windows.Forms.ColumnHeader chId;
@@ -177,6 +176,7 @@
         private System.Windows.Forms.ColumnHeader chHex;
         private System.Windows.Forms.ColumnHeader chAscii;
         private System.Windows.Forms.Timer tmrDeviceChange;
+        private System.Windows.Forms.TreeView tvDevices;
     }
 }
 

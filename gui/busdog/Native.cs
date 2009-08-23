@@ -15,6 +15,7 @@ namespace busdog
         public string PhysicalDeviceObjectName;
         public string HardwareId;
         public string Description;
+        public string InstanceId;
         public DeviceId(uint devId, bool enabled, string pdoName)
         {
             DevId = devId;
@@ -22,6 +23,7 @@ namespace busdog
             PhysicalDeviceObjectName = pdoName;
             HardwareId = null;
             Description = null;
+            InstanceId = null;
         }
 
         public override string ToString()

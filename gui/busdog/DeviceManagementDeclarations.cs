@@ -299,9 +299,21 @@ namespace busdog
         internal static extern bool SetupDiEnumDeviceInfo(IntPtr DeviceInfoSet, uint MemberIndex, ref SP_DEVINFO_DATA DeviceInfoData);
 
         [DllImport("setupapi.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        internal static extern bool SetupDiGetDeviceInstanceId(IntPtr DeviceInfoSet, ref SP_DEVINFO_DATA DeviceInfoData, IntPtr DeviceInstanceId, uint DeviceInstanceIdSize, out uint RequiredSize);
+
+        [DllImport("setupapi.dll", SetLastError = true, CharSet = CharSet.Auto)]
         internal static extern bool SetupDiGetDeviceRegistryProperty(IntPtr DeviceInfoSet, ref SP_DEVINFO_DATA DeviceInfoData, uint Property, out UInt32 PropertyRegDataType, IntPtr PropertyBuffer, uint PropertyBufferSize, out UInt32 RequiredSize);
 
 		[DllImport("user32.dll", SetLastError = true)]
 		internal static extern Boolean UnregisterDeviceNotification(IntPtr Handle);
+
+        [DllImport("setupapi.dll", SetLastError = true)]
+        static extern int CM_Locate_DevNode(out IntPtr pdnDevInst, string pDeviceID, uint ulFlags);
+
+        [DllImport("setupapi.dll", SetLastError = true)]
+        static extern int CM_Get_Child(out IntPtr pdnDevInst, int dnDevInst, int ulFlags);
+
+        [DllImport("setupapi.dll", SetLastError = true)]
+        static extern int CM_Get_Sibling(out IntPtr pdnDevInst, int DevInst, int ulFlags);
 	}
 }

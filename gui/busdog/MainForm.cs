@@ -26,7 +26,7 @@ namespace busdog
 
         private void EnumFilterDevices()
         {
-            lbDevices.Items.Clear();
+            tvDevices.Nodes.Clear();
 
             List<DeviceId> deviceIds;
             native.GetDeviceList(out deviceIds);
@@ -34,9 +34,24 @@ namespace busdog
             for (int i = 0; i < deviceIds.Count; i++)
             {
                 DeviceId devId = deviceIds[i];
-                devManage.FindDeviceProps(devId.PhysicalDeviceObjectName, out devId.HardwareId, out devId.Description);
-                lbDevices.Items.Add(devId, devId.Enabled);
+                devManage.FindDeviceProps(devId.PhysicalDeviceObjectName, out devId.HardwareId, out devId.Description, out devId.InstanceId);
+
+                TreeNode child = new TreeNode(devId.ToString());
+                child.Checked = devId.Enabled;
+                child.Tag = devId;
+                for (int j = 0; j < tvDevices.Nodes.Count; j++)
+                {
+                    DeviceId devId2 = (DeviceId)tvDevices.Nodes[j].Tag;
+                    if (devManage.IsDeviceChild(devId2.InstanceId, devId.InstanceId))
+                    {
+                        tvDevices.Nodes[j].Nodes.Add(child);
+                        break;
+                    }
+                }
+                if (child.Parent == null)
+                    tvDevices.Nodes.Add(child);
             }
+            tvDevices.ExpandAll();
         }
 
         protected override void WndProc(ref Message m)
@@ -50,13 +65,6 @@ namespace busdog
             //  Let the base form process the message.
             base.WndProc(ref m);
         }        
-
-        private void lbDevices_ItemCheck(object sender, ItemCheckEventArgs e)
-        {
-            native.SetDeviceEnabled(
-                ((DeviceId)lbDevices.Items[e.Index]).DevId,
-                e.NewValue == CheckState.Checked);
-        }
 
         private void tmrTrace_Tick(object sender, EventArgs e)
         {
@@ -107,6 +115,13 @@ namespace busdog
         {
             EnumFilterDevices();
             tmrDeviceChange.Enabled = false;
+        }
+
+        private void tvDevices_AfterCheck(object sender, TreeViewEventArgs e)
+        {            
+            native.SetDeviceEnabled(
+                ((DeviceId)e.Node.Tag).DevId,
+                e.Node.Checked);
         }
     }
 }
