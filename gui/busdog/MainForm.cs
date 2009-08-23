@@ -12,19 +12,44 @@ namespace busdog
     public partial class MainForm : Form
     {
         Native native = new Native();
+        DeviceManagement devManage = new DeviceManagement();
+        IntPtr devNotificationsHandle;
 
         public MainForm()
         {
             InitializeComponent();
 
+            devManage.RegisterForDeviceNotifications(Handle, ref devNotificationsHandle);
+
+            EnumFilterDevices();
+        }
+
+        private void EnumFilterDevices()
+        {
+            lbDevices.Items.Clear();
+
             List<DeviceId> deviceIds;
             native.GetDeviceList(out deviceIds);
 
-            foreach (DeviceId devId in deviceIds)
+            for (int i = 0; i < deviceIds.Count; i++)
             {
+                DeviceId devId = deviceIds[i];
+                devManage.FindDeviceProps(devId.PhysicalDeviceObjectName, out devId.HardwareId, out devId.Description);
                 lbDevices.Items.Add(devId, devId.Enabled);
             }
         }
+
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == DeviceManagement.WM_DEVICECHANGE)
+            {
+                tmrDeviceChange.Enabled = false;
+                tmrDeviceChange.Enabled = true;
+            }
+
+            //  Let the base form process the message.
+            base.WndProc(ref m);
+        }        
 
         private void lbDevices_ItemCheck(object sender, ItemCheckEventArgs e)
         {
@@ -33,7 +58,7 @@ namespace busdog
                 e.NewValue == CheckState.Checked);
         }
 
-        private void timer1_Tick(object sender, EventArgs e)
+        private void tmrTrace_Tick(object sender, EventArgs e)
         {
             if (tabControl.SelectedTab == tabTrace)
             {
@@ -76,6 +101,12 @@ namespace busdog
             }
 
             lvTraces.TopItem = lvTraces.Items.Add(item);
+        }
+
+        private void tmrDeviceChange_Tick(object sender, EventArgs e)
+        {
+            EnumFilterDevices();
+            tmrDeviceChange.Enabled = false;
         }
     }
 }

@@ -211,16 +211,16 @@ void __cdecl main(int argc, CHAR **argv)
 
                     index += sizeof(BUSDOG_DEVICE_ID);
 
-                    if (index <= outBufSize - pDevId->HardwareIdSize)
+                    if (index <= outBufSize - pDevId->PhysicalDeviceObjectNameSize)
                     {
-                        PWCHAR hardwareId = (PWCHAR)(outBuf + index);
+                        PWCHAR pdoName = (PWCHAR)(outBuf + index);
 
-                        printf("DeviceId: %2d, Enabled: %d, HardwareId: %S\n", pDevId->DeviceId, pDevId->Enabled, hardwareId);
+                        printf("DeviceId: %2d, Enabled: %d, PDO Name: %S\n", pDevId->DeviceId, pDevId->Enabled, pdoName);
                     }
                     else
                         break;
 
-                    index += pDevId->HardwareIdSize;
+                    index += pDevId->PhysicalDeviceObjectNameSize;
                 }
             }
         }

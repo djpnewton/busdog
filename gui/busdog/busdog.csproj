@@ -48,6 +48,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DeviceManagement.cs" />
+    <Compile Include="DeviceManagementDeclarations.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>

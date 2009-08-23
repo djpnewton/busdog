@@ -33,7 +33,7 @@
             this.tabSetup = new System.Windows.Forms.TabPage();
             this.lbDevices = new System.Windows.Forms.CheckedListBox();
             this.tabTrace = new System.Windows.Forms.TabPage();
-            this.timer1 = new System.Windows.Forms.Timer(this.components);
+            this.tmrTrace = new System.Windows.Forms.Timer(this.components);
             this.lvTraces = new System.Windows.Forms.ListView();
             this.chId = new System.Windows.Forms.ColumnHeader();
             this.chType = new System.Windows.Forms.ColumnHeader();
@@ -41,6 +41,7 @@
             this.chLength = new System.Windows.Forms.ColumnHeader();
             this.chHex = new System.Windows.Forms.ColumnHeader();
             this.chAscii = new System.Windows.Forms.ColumnHeader();
+            this.tmrDeviceChange = new System.Windows.Forms.Timer(this.components);
             this.tabControl.SuspendLayout();
             this.tabSetup.SuspendLayout();
             this.tabTrace.SuspendLayout();
@@ -90,10 +91,10 @@
             this.tabTrace.Text = "Trace";
             this.tabTrace.UseVisualStyleBackColor = true;
             // 
-            // timer1
+            // tmrTrace
             // 
-            this.timer1.Enabled = true;
-            this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
+            this.tmrTrace.Enabled = true;
+            this.tmrTrace.Tick += new System.EventHandler(this.tmrTrace_Tick);
             // 
             // lvTraces
             // 
@@ -116,18 +117,22 @@
             // chId
             // 
             this.chId.Text = "Id";
+            this.chId.Width = 30;
             // 
             // chType
             // 
             this.chType.Text = "Type";
+            this.chType.Width = 46;
             // 
             // chTimestamp
             // 
             this.chTimestamp.Text = "Timestamp";
+            this.chTimestamp.Width = 79;
             // 
             // chLength
             // 
             this.chLength.Text = "Length";
+            this.chLength.Width = 59;
             // 
             // chHex
             // 
@@ -136,6 +141,11 @@
             // chAscii
             // 
             this.chAscii.Text = "Ascii";
+            // 
+            // tmrDeviceChange
+            // 
+            this.tmrDeviceChange.Interval = 1000;
+            this.tmrDeviceChange.Tick += new System.EventHandler(this.tmrDeviceChange_Tick);
             // 
             // MainForm
             // 
@@ -158,7 +168,7 @@
         private System.Windows.Forms.TabPage tabSetup;
         private System.Windows.Forms.TabPage tabTrace;
         private System.Windows.Forms.CheckedListBox lbDevices;
-        private System.Windows.Forms.Timer timer1;
+        private System.Windows.Forms.Timer tmrTrace;
         private System.Windows.Forms.ListView lvTraces;
         private System.Windows.Forms.ColumnHeader chId;
         private System.Windows.Forms.ColumnHeader chType;
@@ -166,6 +176,7 @@
         private System.Windows.Forms.ColumnHeader chLength;
         private System.Windows.Forms.ColumnHeader chHex;
         private System.Windows.Forms.ColumnHeader chAscii;
+        private System.Windows.Forms.Timer tmrDeviceChange;
     }
 }
 

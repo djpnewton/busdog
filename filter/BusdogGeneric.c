@@ -162,8 +162,8 @@ BusDogFillBufferWithDeviceIds(
         WDF_OBJECT_ATTRIBUTES attributes;
         WDFMEMORY memory;
         size_t hwidMemorySize;
-        PVOID hwidBuffer;
-        UNICODE_STRING hardwareId;
+        PVOID pdoNameBuffer;
+        UNICODE_STRING pdoName;
         size_t deviceIdSize;
         PBUSDOG_DEVICE_ID pDeviceId;
 
@@ -183,7 +183,7 @@ BusDogFillBufferWithDeviceIds(
         attributes.ParentObject = device;
 
         status = WdfDeviceAllocAndQueryProperty(device,
-                DevicePropertyHardwareID,
+                DevicePropertyPhysicalDeviceObjectName,
                 NonPagedPool,
                 &attributes,
                 &memory
@@ -197,9 +197,9 @@ BusDogFillBufferWithDeviceIds(
             continue;
         }
 
-        hwidBuffer = WdfMemoryGetBuffer(memory, &hwidMemorySize);
+        pdoNameBuffer = WdfMemoryGetBuffer(memory, &hwidMemorySize);
 
-        if (hwidBuffer == NULL) 
+        if (pdoNameBuffer == NULL) 
         {   
             KdPrint(("WdfMemoryGetBuffer failed\n"));  
 
@@ -207,19 +207,19 @@ BusDogFillBufferWithDeviceIds(
         }   
 
         // assuming here that the string is null-terminated (hope this doesnt bite me later)
-        RtlInitUnicodeString(&hardwareId, hwidBuffer);
+        RtlInitUnicodeString(&pdoName, pdoNameBuffer);
 
         //
         // Print item
         //
 
-        KdPrint(("%2d - Enabled: %d, HardwareId: %wZ\n", context->DeviceId, context->FilterEnabled, &hardwareId));
+        KdPrint(("%2d - Enabled: %d, PDO Name: %wZ\n", context->DeviceId, context->FilterEnabled, &pdoName));
 
         //
         // Copy Item to user buffer
         //
 
-        deviceIdSize = sizeof(BUSDOG_DEVICE_ID) + hardwareId.Length;
+        deviceIdSize = sizeof(BUSDOG_DEVICE_ID) + pdoName.Length;
 
         if (deviceIdSize > BufferSize - *BytesWritten)
         {
@@ -235,11 +235,11 @@ BusDogFillBufferWithDeviceIds(
 
             pDeviceId->Enabled = context->FilterEnabled;
 
-            pDeviceId->HardwareIdSize = hardwareId.Length;
+            pDeviceId->PhysicalDeviceObjectNameSize = pdoName.Length;
 
             RtlCopyMemory((PCHAR)Buffer + *BytesWritten + sizeof(BUSDOG_DEVICE_ID),
-                          hardwareId.Buffer,
-                          hardwareId.Length);
+                          pdoName.Buffer,
+                          pdoName.Length);
 
             *BytesWritten += deviceIdSize;
         }

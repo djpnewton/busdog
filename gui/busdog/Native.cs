@@ -12,17 +12,25 @@ namespace busdog
     {
         public uint DevId;
         public bool Enabled;
+        public string PhysicalDeviceObjectName;
         public string HardwareId;
-        public DeviceId(uint devId, bool enabled, string hardwareId)
+        public string Description;
+        public DeviceId(uint devId, bool enabled, string pdoName)
         {
             DevId = devId;
             Enabled = enabled;
-            HardwareId = hardwareId;
+            PhysicalDeviceObjectName = pdoName;
+            HardwareId = null;
+            Description = null;
         }
 
         public override string ToString()
         {
-            return string.Format("{0:D2}: {1}", DevId, HardwareId);
+            if (Description != null)
+                return string.Format("{0:D2}: {1}", DevId, Description);
+            if (HardwareId != null)
+                return string.Format("{0:D2}: {1}", DevId, HardwareId);
+            return string.Format("{0:D2}: {1}", DevId, PhysicalDeviceObjectName);
         }
     }
 
@@ -154,7 +162,7 @@ namespace busdog
         {
             public uint DeviceId;
             public byte Enabled;
-            public uint HardwareIdSize;
+            public uint PhysicalDeviceObjectNameSize;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -264,8 +272,8 @@ namespace busdog
                     index += Marshal.SizeOf(typeof(BUSDOG_DEVICE_ID));
                     string hardwareId =
                         Marshal.PtrToStringUni(new IntPtr(outBuf.ToInt32() + index),
-                            (int)devId.HardwareIdSize / 2);
-                    index += (int)devId.HardwareIdSize;
+                            (int)devId.PhysicalDeviceObjectNameSize / 2);
+                    index += (int)devId.PhysicalDeviceObjectNameSize;
                     deviceIds.Add(new DeviceId(devId.DeviceId, Convert.ToBoolean(devId.Enabled), hardwareId));
                 }        
             }

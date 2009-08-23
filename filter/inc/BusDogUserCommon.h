@@ -108,7 +108,7 @@ typedef struct
 
     BOOLEAN Enabled;
 
-    size_t HardwareIdSize;
+    size_t PhysicalDeviceObjectNameSize;
 
 } BUSDOG_DEVICE_ID, *PBUSDOG_DEVICE_ID; // unicode string follows this structure in memory
 
