@@ -34,6 +34,7 @@
             this.tabDevices = new System.Windows.Forms.TabPage();
             this.tvDevices = new System.Windows.Forms.TreeView();
             this.tabTrace = new System.Windows.Forms.TabPage();
+            this.tscTrace = new System.Windows.Forms.ToolStripContainer();
             this.lvTraces = new System.Windows.Forms.ListView();
             this.chId = new System.Windows.Forms.ColumnHeader();
             this.chType = new System.Windows.Forms.ColumnHeader();
@@ -41,13 +42,11 @@
             this.chLength = new System.Windows.Forms.ColumnHeader();
             this.chHex = new System.Windows.Forms.ColumnHeader();
             this.chAscii = new System.Windows.Forms.ColumnHeader();
-            this.tmrTrace = new System.Windows.Forms.Timer(this.components);
-            this.tmrDeviceChange = new System.Windows.Forms.Timer(this.components);
-            this.tscTrace = new System.Windows.Forms.ToolStripContainer();
             this.tsTrace = new System.Windows.Forms.ToolStrip();
             this.btnStartTraces = new System.Windows.Forms.ToolStripButton();
-            this.btnStopTraces = new System.Windows.Forms.ToolStripButton();
             this.btnClearTraces = new System.Windows.Forms.ToolStripButton();
+            this.tmrTrace = new System.Windows.Forms.Timer(this.components);
+            this.tmrDeviceChange = new System.Windows.Forms.Timer(this.components);
             this.tabControl.SuspendLayout();
             this.tabDevices.SuspendLayout();
             this.tabTrace.SuspendLayout();
@@ -102,6 +101,24 @@
             this.tabTrace.Text = "Trace";
             this.tabTrace.UseVisualStyleBackColor = true;
             // 
+            // tscTrace
+            // 
+            // 
+            // tscTrace.ContentPanel
+            // 
+            this.tscTrace.ContentPanel.Controls.Add(this.lvTraces);
+            this.tscTrace.ContentPanel.Size = new System.Drawing.Size(278, 209);
+            this.tscTrace.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tscTrace.Location = new System.Drawing.Point(3, 3);
+            this.tscTrace.Name = "tscTrace";
+            this.tscTrace.Size = new System.Drawing.Size(278, 234);
+            this.tscTrace.TabIndex = 1;
+            this.tscTrace.Text = "toolStripContainer1";
+            // 
+            // tscTrace.TopToolStripPanel
+            // 
+            this.tscTrace.TopToolStripPanel.Controls.Add(this.tsTrace);
+            // 
             // lvTraces
             // 
             this.lvTraces.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
@@ -148,48 +165,21 @@
             // 
             this.chAscii.Text = "Ascii";
             // 
-            // tmrTrace
-            // 
-            this.tmrTrace.Tick += new System.EventHandler(this.tmrTrace_Tick);
-            // 
-            // tmrDeviceChange
-            // 
-            this.tmrDeviceChange.Interval = 1000;
-            this.tmrDeviceChange.Tick += new System.EventHandler(this.tmrDeviceChange_Tick);
-            // 
-            // tscTrace
-            // 
-            // 
-            // tscTrace.ContentPanel
-            // 
-            this.tscTrace.ContentPanel.Controls.Add(this.lvTraces);
-            this.tscTrace.ContentPanel.Size = new System.Drawing.Size(278, 209);
-            this.tscTrace.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tscTrace.Location = new System.Drawing.Point(3, 3);
-            this.tscTrace.Name = "tscTrace";
-            this.tscTrace.Size = new System.Drawing.Size(278, 234);
-            this.tscTrace.TabIndex = 1;
-            this.tscTrace.Text = "toolStripContainer1";
-            // 
-            // tscTrace.TopToolStripPanel
-            // 
-            this.tscTrace.TopToolStripPanel.Controls.Add(this.tsTrace);
-            // 
             // tsTrace
             // 
             this.tsTrace.Dock = System.Windows.Forms.DockStyle.None;
             this.tsTrace.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.btnStartTraces,
-            this.btnStopTraces,
             this.btnClearTraces});
             this.tsTrace.Location = new System.Drawing.Point(3, 0);
             this.tsTrace.Name = "tsTrace";
-            this.tsTrace.Size = new System.Drawing.Size(116, 25);
+            this.tsTrace.Size = new System.Drawing.Size(83, 25);
             this.tsTrace.TabIndex = 4;
             this.tsTrace.Text = "tsTrace";
             // 
             // btnStartTraces
             // 
+            this.btnStartTraces.CheckOnClick = true;
             this.btnStartTraces.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.btnStartTraces.Image = ((System.Drawing.Image)(resources.GetObject("btnStartTraces.Image")));
             this.btnStartTraces.ImageTransparentColor = System.Drawing.Color.Magenta;
@@ -197,16 +187,6 @@
             this.btnStartTraces.Size = new System.Drawing.Size(35, 22);
             this.btnStartTraces.Text = "Start";
             this.btnStartTraces.Click += new System.EventHandler(this.btnStartTraces_Click);
-            // 
-            // btnStopTraces
-            // 
-            this.btnStopTraces.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.btnStopTraces.Image = ((System.Drawing.Image)(resources.GetObject("btnStopTraces.Image")));
-            this.btnStopTraces.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.btnStopTraces.Name = "btnStopTraces";
-            this.btnStopTraces.Size = new System.Drawing.Size(33, 22);
-            this.btnStopTraces.Text = "Stop";
-            this.btnStopTraces.Click += new System.EventHandler(this.btnStopTraces_Click);
             // 
             // btnClearTraces
             // 
@@ -217,6 +197,15 @@
             this.btnClearTraces.Size = new System.Drawing.Size(36, 22);
             this.btnClearTraces.Text = "Clear";
             this.btnClearTraces.Click += new System.EventHandler(this.btnClearTraces_Click);
+            // 
+            // tmrTrace
+            // 
+            this.tmrTrace.Tick += new System.EventHandler(this.tmrTrace_Tick);
+            // 
+            // tmrDeviceChange
+            // 
+            this.tmrDeviceChange.Interval = 1000;
+            this.tmrDeviceChange.Tick += new System.EventHandler(this.tmrDeviceChange_Tick);
             // 
             // MainForm
             // 
@@ -258,7 +247,6 @@
         private System.Windows.Forms.ToolStripContainer tscTrace;
         private System.Windows.Forms.ToolStrip tsTrace;
         private System.Windows.Forms.ToolStripButton btnStartTraces;
-        private System.Windows.Forms.ToolStripButton btnStopTraces;
         private System.Windows.Forms.ToolStripButton btnClearTraces;
     }
 }

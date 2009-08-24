@@ -41,19 +41,26 @@ namespace busdog
                 child.Checked = devId.Enabled;
                 child.ToolTipText = devId.HardwareId;
                 child.Tag = devId;
-                tvDevices.Nodes.Add(child);
-                for (int j = 0; j < tvDevices.Nodes.Count; j++)
-                {
-                    DeviceId devIdParent = (DeviceId)tvDevices.Nodes[j].Tag;
-                    if (devManage.IsDeviceChild(devIdParent.InstanceId, devId.InstanceId))
-                    {
-                        tvDevices.Nodes.Remove(child);
-                        tvDevices.Nodes[j].Nodes.Add(child);
-                        break;
-                    }
-                }
+                if (!InsertNodeInDeviceTree(devId, tvDevices.Nodes, child))
+                    tvDevices.Nodes.Add(child);
             }
             tvDevices.ExpandAll();
+        }
+
+        private bool InsertNodeInDeviceTree(DeviceId devId, TreeNodeCollection parentNodes, TreeNode child)
+        {
+            for (int i = 0; i < parentNodes.Count; i++)
+            {
+                DeviceId devIdParent = (DeviceId)parentNodes[i].Tag;
+                if (devManage.IsDeviceChild(devIdParent.InstanceId, devId.InstanceId))
+                {
+                    parentNodes[i].Nodes.Add(child);
+                    return true;
+                }
+                if (InsertNodeInDeviceTree(devId, parentNodes[i].Nodes, child))
+                    return true;
+            }
+            return false;
         }
 
         protected override void WndProc(ref Message m)
@@ -127,18 +134,12 @@ namespace busdog
 
         private void btnStartTraces_Click(object sender, EventArgs e)
         {
-            native.StartTracing();
-            tmrTrace.Enabled = true;
-            btnStartTraces.Checked = true;
-            btnStopTraces.Checked = false;
-        }
-
-        private void btnStopTraces_Click(object sender, EventArgs e)
-        {
-            native.StopTracing();
-            tmrTrace.Enabled = false;
-            btnStartTraces.Checked = false;
-            btnStopTraces.Checked = true;
+            if (btnStartTraces.Checked)
+                native.StartTracing();
+            else
+                native.StopTracing();
+            tmrTrace.Enabled = btnStartTraces.Checked;
+            btnStartTraces.Checked = btnStartTraces.Checked;
         }
 
         private void btnClearTraces_Click(object sender, EventArgs e)
