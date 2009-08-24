@@ -51,6 +51,11 @@ namespace busdog
     {
         public int Seconds;
         public int USec;
+
+        public override string ToString()
+        {
+            return string.Format("{0}.{1:D6}", Seconds, USec);
+        }
     }
         
     public struct FilterTrace
@@ -78,11 +83,6 @@ namespace busdog
                 default:
                     return "?";
             }
-        }
-
-        public string TimestampToStr()
-        {
-            return string.Format("{0}.{1:D6}", Timestamp.Seconds, Timestamp.USec);
         }
 
         public string BufToChars()
@@ -117,7 +117,20 @@ namespace busdog
 
         public override string ToString()
         {
-            return string.Format("{0:D2}: {1}: {2}: {3}", DeviceId, TypeToStr(), TimestampToStr(), BufToChars());
+            return string.Format("{0:D2}: {1}: {2}: {3}", DeviceId, TypeToStr(), Timestamp.ToString(), BufToChars());
+        }
+
+        public BUSDOG_TIMESTAMP GetTimestampDelta(FilterTrace prevTrace)
+        {
+            BUSDOG_TIMESTAMP delta = new BUSDOG_TIMESTAMP();
+            if (prevTrace.Timestamp.Seconds > 0 || prevTrace.Timestamp.USec > 0)
+            {
+                delta.Seconds = Timestamp.Seconds - prevTrace.Timestamp.Seconds;
+                delta.USec = Timestamp.USec - prevTrace.Timestamp.USec;
+                if (delta.USec < 0)
+                    delta.USec = 1000000 + delta.USec;
+            }
+            return delta;
         }
     }
 
@@ -342,6 +355,28 @@ namespace busdog
             }
             Marshal.FreeHGlobal(outBuf);
             return result;
+        }
+
+        public bool StartTracing()
+        {
+            uint bytesReturned;
+            return DeviceIoControl(IOCTL_BUSDOG_START_FILTERING,
+                    IntPtr.Zero,
+                    0,
+                    IntPtr.Zero,
+                    0,
+                    out bytesReturned);
+        }
+
+        public bool StopTracing()
+        {
+            uint bytesReturned;
+            return DeviceIoControl(IOCTL_BUSDOG_STOP_FILTERING,
+                    IntPtr.Zero,
+                    0,
+                    IntPtr.Zero,
+                    0,
+                    out bytesReturned);
         }
     }
 }

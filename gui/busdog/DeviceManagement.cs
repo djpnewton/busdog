@@ -31,7 +31,7 @@ namespace busdog
                             if (!(CM_Get_Sibling(out ptrChildCompare, ptrChildCompare.ToInt32(), 0) == 0))
                                 break;
                         }
-                        return ptrChildCompare.ToInt32() != ptrChildDevNode.ToInt32();
+                        return ptrChildCompare.ToInt32() == ptrChildDevNode.ToInt32();
                     }
                 }
             }

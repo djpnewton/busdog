@@ -14,6 +14,7 @@ namespace busdog
         Native native = new Native();
         DeviceManagement devManage = new DeviceManagement();
         IntPtr devNotificationsHandle;
+        FilterTrace prevTrace = new FilterTrace();
 
         public MainForm()
         {
@@ -38,18 +39,19 @@ namespace busdog
 
                 TreeNode child = new TreeNode(devId.ToString());
                 child.Checked = devId.Enabled;
+                child.ToolTipText = devId.HardwareId;
                 child.Tag = devId;
+                tvDevices.Nodes.Add(child);
                 for (int j = 0; j < tvDevices.Nodes.Count; j++)
                 {
-                    DeviceId devId2 = (DeviceId)tvDevices.Nodes[j].Tag;
-                    if (devManage.IsDeviceChild(devId2.InstanceId, devId.InstanceId))
+                    DeviceId devIdParent = (DeviceId)tvDevices.Nodes[j].Tag;
+                    if (devManage.IsDeviceChild(devIdParent.InstanceId, devId.InstanceId))
                     {
+                        tvDevices.Nodes.Remove(child);
                         tvDevices.Nodes[j].Nodes.Add(child);
                         break;
                     }
                 }
-                if (child.Parent == null)
-                    tvDevices.Nodes.Add(child);
             }
             tvDevices.ExpandAll();
         }
@@ -85,7 +87,6 @@ namespace busdog
         {
             // Create a new row.
             ListViewItem item = new ListViewItem(filterTrace.DeviceId.ToString());
-
             for (int i = 1; i < lvTraces.Columns.Count; i++)
             {
                 switch (i)
@@ -94,7 +95,7 @@ namespace busdog
                         item.SubItems.Add(filterTrace.TypeToStr());
                         break;
                     case 2:
-                        item.SubItems.Add(filterTrace.TimestampToStr());
+                        item.SubItems.Add(filterTrace.GetTimestampDelta(prevTrace).ToString());
                         break;
                     case 3:
                         item.SubItems.Add(filterTrace.Buffer.Length.ToString());
@@ -107,8 +108,8 @@ namespace busdog
                         break;
                 }
             }
-
             lvTraces.TopItem = lvTraces.Items.Add(item);
+            prevTrace = filterTrace;
         }
 
         private void tmrDeviceChange_Tick(object sender, EventArgs e)
@@ -122,6 +123,28 @@ namespace busdog
             native.SetDeviceEnabled(
                 ((DeviceId)e.Node.Tag).DevId,
                 e.Node.Checked);
+        }
+
+        private void btnStartTraces_Click(object sender, EventArgs e)
+        {
+            native.StartTracing();
+            tmrTrace.Enabled = true;
+            btnStartTraces.Checked = true;
+            btnStopTraces.Checked = false;
+        }
+
+        private void btnStopTraces_Click(object sender, EventArgs e)
+        {
+            native.StopTracing();
+            tmrTrace.Enabled = false;
+            btnStartTraces.Checked = false;
+            btnStopTraces.Checked = true;
+        }
+
+        private void btnClearTraces_Click(object sender, EventArgs e)
+        {
+            lvTraces.Items.Clear();
+            prevTrace = new FilterTrace();
         }
     }
 }
