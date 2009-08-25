@@ -1,6 +1,7 @@
 
 #include <ntddk.h>
 #include <wdf.h>
+#include <Usbioctl.h>
 
 #include "BusDogData.h"
 
@@ -146,6 +147,15 @@ BusDogForwardRequestWithCompletion(
     IN WDFREQUEST Request,
     IN PFN_WDF_REQUEST_COMPLETION_ROUTINE CompletionRoutine,
     IN WDFCONTEXT CompletionContext
+    );
+
+VOID
+BusDogIoInternalDeviceControl(
+    IN WDFQUEUE  Queue,
+    IN WDFREQUEST  Request,
+    IN size_t  OutputBufferLength,
+    IN size_t  InputBufferLength,
+    IN ULONG  IoControlCode
     );
 
 #endif

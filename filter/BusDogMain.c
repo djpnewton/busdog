@@ -313,6 +313,7 @@ Return Value:
 
     ioQueueConfig.EvtIoRead = BusDogIoRead;
     ioQueueConfig.EvtIoWrite = BusDogIoWrite;
+    ioQueueConfig.EvtIoInternalDeviceControl = BusDogIoInternalDeviceControl;
 
     //
     // Create the queue...
@@ -1245,6 +1246,40 @@ BusDogForwardRequestWithCompletion(
         WdfRequestComplete(Request, status);
     }
     return;
+}
+
+//help https://www.osronline.com/showThread.CFM?link=129943
+//help http://blogs.msdn.com/doronh/archive/2006/07/10/661475.aspx
+VOID
+BusDogIoInternalDeviceControl(
+    IN WDFQUEUE  Queue,
+    IN WDFREQUEST  Request,
+    IN size_t  OutputBufferLength,
+    IN size_t  InputBufferLength,
+    IN ULONG  IoControlCode
+    )
+{
+    NTSTATUS              status = STATUS_SUCCESS;
+    PBUSDOG_CONTEXT       context = BusDogGetDeviceContext(WdfIoQueueGetDevice(Queue));
+
+    if (BusDogFiltering && context->FilterEnabled)
+    {
+        KdPrint(("BusDogIoInternalDeviceControl - Id: %d, IOCTL: %d\n",  context->DeviceId, IoControlCode));
+
+        switch (IoControlCode)
+        {
+            case IOCTL_INTERNAL_USB_SUBMIT_URB:
+                KdPrint(("    IOCTL_INTERNAL_USB_SUBMIT_URB\n"));
+                break;
+        }
+    }
+        
+    //
+    // pass the request on to the filtered device
+    //
+
+    BusDogForwardRequest(WdfIoQueueGetDevice(Queue), 
+                          Request);
 }
 
 #endif
