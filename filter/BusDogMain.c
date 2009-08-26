@@ -4,7 +4,7 @@
 //
 // BusDogFiltering controls whether to log filter traces or not
 //
-BOOLEAN         BusDogFiltering = TRUE;
+BOOLEAN         BusDogFiltering = FALSE;
 
 
 #ifdef ALLOC_PRAGMA
@@ -1248,8 +1248,6 @@ BusDogForwardRequestWithCompletion(
     return;
 }
 
-//help https://www.osronline.com/showThread.CFM?link=129943
-//help http://blogs.msdn.com/doronh/archive/2006/07/10/661475.aspx
 VOID
 BusDogIoInternalDeviceControl(
     IN WDFQUEUE  Queue,
@@ -1260,7 +1258,9 @@ BusDogIoInternalDeviceControl(
     )
 {
     NTSTATUS              status = STATUS_SUCCESS;
-    PBUSDOG_CONTEXT       context = BusDogGetDeviceContext(WdfIoQueueGetDevice(Queue));
+    WDFDEVICE             device = WdfIoQueueGetDevice(Queue);
+    PBUSDOG_CONTEXT       context = BusDogGetDeviceContext(device);
+    PBUSDOG_FILTER_TRACE_LLISTITEM pTraceListItem = NULL;
 
     if (BusDogFiltering && context->FilterEnabled)
     {
@@ -1269,8 +1269,84 @@ BusDogIoInternalDeviceControl(
         switch (IoControlCode)
         {
             case IOCTL_INTERNAL_USB_SUBMIT_URB:
+            {
+                PURB pUrb;
+
                 KdPrint(("    IOCTL_INTERNAL_USB_SUBMIT_URB\n"));
+                
+                pUrb = (PURB) IoGetCurrentIrpStackLocation(WdfRequestWdmGetIrp(Request))->Parameters.Others.Argument1;
+
+                if (pUrb->UrbHeader.Function == URB_FUNCTION_BULK_OR_INTERRUPT_TRANSFER)
+                {
+                    struct _URB_BULK_OR_INTERRUPT_TRANSFER* pTransfer = (struct _URB_BULK_OR_INTERRUPT_TRANSFER*)pUrb;
+                    BOOLEAN bRead = (BOOLEAN)(pTransfer->TransferFlags & USBD_TRANSFER_DIRECTION_IN);
+                    
+                    KdPrint(("        URB_FUNCTION_BULK_OR_INTERRUPT_TRANSFER\n"));
+                    KdPrint(("        TransferBufferLength: %d\n", pTransfer->TransferBufferLength));
+                    KdPrint(("        R/W: %s, MDL: %d\n", bRead ? "read" : "write", pTransfer->TransferBufferMDL != NULL));
+
+                    KdPrint(("        Data: "));
+                    if (pTransfer->TransferBuffer != NULL)
+                    {
+                        PrintChars((PCHAR)pTransfer->TransferBuffer, pTransfer->TransferBufferLength);
+
+                        pTraceListItem = BusDogCreateTraceListItem(context->DeviceId, 
+                            bRead ? BusDogReadRequest : BusDogWriteRequest, 
+                            pTransfer->TransferBuffer, 
+                            pTransfer->TransferBufferLength);
+                    }
+                    else if (pTransfer->TransferBufferMDL != NULL)
+                    {
+                        PCHAR pMDLBuf = (PCHAR)MmGetSystemAddressForMdlSafe(pTransfer->TransferBufferMDL, NormalPagePriority);
+
+                        PrintChars(pMDLBuf, pTransfer->TransferBufferLength);
+
+                        pTraceListItem = BusDogCreateTraceListItem(context->DeviceId, 
+                            bRead ? BusDogReadRequest : BusDogWriteRequest, 
+                            pMDLBuf, 
+                            pTransfer->TransferBufferLength);
+                    }
+                    else
+                    {
+                        KdPrint(("Buffer error!\n"));
+                    }
+                }
                 break;
+            }
+        }
+
+        if (pTraceListItem != NULL)
+        {
+
+            PBUSDOG_WORKITEM_CONTEXT        context;
+            WDF_OBJECT_ATTRIBUTES           attributes;
+            WDF_WORKITEM_CONFIG             workitemConfig;
+            WDFWORKITEM                     hWorkItem;
+
+            WDF_OBJECT_ATTRIBUTES_INIT(&attributes);
+
+            WDF_OBJECT_ATTRIBUTES_SET_CONTEXT_TYPE(&attributes, BUSDOG_WORKITEM_CONTEXT);
+
+            attributes.ParentObject = device;
+
+            WDF_WORKITEM_CONFIG_INIT(&workitemConfig, BusDogAddTraceWorkItem);
+
+            status = WdfWorkItemCreate( &workitemConfig,
+                    &attributes,
+                    &hWorkItem);
+
+            if (NT_SUCCESS(status)) 
+            {
+                context = BusDogGetWorkItemContext(hWorkItem);
+
+                context->pTraceListItem = pTraceListItem;
+
+                WdfWorkItemEnqueue(hWorkItem);
+            }
+            else
+            {
+                KdPrint(("WdfWorkItemCreate failed - 0x%x\n", status));
+            }
         }
     }
         

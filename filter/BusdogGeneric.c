@@ -6,8 +6,6 @@ PrintChars(
     __in ULONG CountChars
     )
 {
-    PAGED_CODE();
-
     if (CountChars) {
 
         while (CountChars--) {

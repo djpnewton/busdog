@@ -75,8 +75,8 @@ BusDogTraceListCleanUp(
     
 }
 
-VOID
-BusDogAddTraceToList(
+PBUSDOG_FILTER_TRACE_LLISTITEM
+BusDogCreateTraceListItem(
     ULONG DeviceId,
     BUSDOG_REQUEST_TYPE Type,
     PVOID TraceBuffer,
@@ -85,8 +85,6 @@ BusDogAddTraceToList(
 {
     PBUSDOG_FILTER_TRACE pTrace;
     PBUSDOG_FILTER_TRACE_LLISTITEM pTraceListItem;
-
-    PAGED_CODE ();
 
     pTrace = ExAllocatePoolWithTag(
             NonPagedPool,
@@ -97,7 +95,7 @@ BusDogAddTraceToList(
     {
         KdPrint(("ExAllocatePoolWithTag failed\n"));
         
-        return;
+        return NULL;
     }
     else
     {
@@ -125,7 +123,7 @@ BusDogAddTraceToList(
         
         ExFreePool(pTrace);
 
-        return;
+        return NULL;
     }
     else
     {
@@ -135,6 +133,16 @@ BusDogAddTraceToList(
 
         pTraceListItem->Next = NULL;
     }
+
+    return pTraceListItem;
+}
+
+VOID
+__BusDogAddTraceToList(
+    PBUSDOG_FILTER_TRACE_LLISTITEM pTraceListItem
+    )
+{
+    PAGED_CODE ();
 
     //
     // Add trace to list
@@ -146,7 +154,7 @@ BusDogAddTraceToList(
     {
         BusDogTraceList.Head->Prev = pTraceListItem;
     }
-    
+
     pTraceListItem->Next = BusDogTraceList.Head;
 
     BusDogTraceList.Head = pTraceListItem;
@@ -178,7 +186,50 @@ BusDogAddTraceToList(
     }
 
     WdfWaitLockRelease(BusDogTraceListLock);
+}
 
+VOID 
+BusDogAddTraceWorkItem(
+    IN WDFWORKITEM WorkItem
+    )
+{
+    PBUSDOG_WORKITEM_CONTEXT pItemContext;
+    NTSTATUS status;
+
+    PAGED_CODE ();
+
+    pItemContext = BusDogGetWorkItemContext(WorkItem);
+
+    __BusDogAddTraceToList(pItemContext->pTraceListItem);
+
+    WdfObjectDelete(WorkItem);
+
+    return;
+}
+
+VOID
+BusDogAddTraceToList(
+    ULONG DeviceId,
+    BUSDOG_REQUEST_TYPE Type,
+    PVOID TraceBuffer,
+    ULONG BufferLength
+    )
+{
+    PBUSDOG_FILTER_TRACE_LLISTITEM pTraceListItem = NULL; 
+
+    PAGED_CODE ();
+
+    pTraceListItem = 
+        BusDogCreateTraceListItem(
+            DeviceId,
+            Type,
+            TraceBuffer,
+            BufferLength);
+
+    if (pTraceListItem != NULL)
+    {
+        __BusDogAddTraceToList(pTraceListItem);
+    }
 }
 
 //

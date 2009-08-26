@@ -323,7 +323,7 @@ namespace busdog
         public bool GetTraceList(out List<FilterTrace> filterTraces)
         {
             filterTraces = new List<FilterTrace>();
-            uint outBufSize = 1024;
+            uint outBufSize = 0x1000;
             IntPtr outBuf = Marshal.AllocHGlobal((int)outBufSize);
             uint bytesReturned;
             bool result =

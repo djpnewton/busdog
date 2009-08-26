@@ -2,6 +2,7 @@
 #include <ntddk.h>
 #include <wdf.h>
 #include <Usbioctl.h>
+#include <usb.h>
 
 #include "BusDogData.h"
 
@@ -79,6 +80,15 @@ typedef struct
 } BUSDOG_FILTER_TRACE_LLIST;
 
 #define BUSDOG_FILTER_TRACE_LIST_MAX_LENGTH 100
+
+typedef struct _BUSDOG_WORKITEM_CONTEXT {
+
+    PBUSDOG_FILTER_TRACE_LLISTITEM       pTraceListItem;
+
+} BUSDOG_WORKITEM_CONTEXT, *PBUSDOG_WORKITEM_CONTEXT;
+
+WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(BUSDOG_WORKITEM_CONTEXT,
+                                        BusDogGetWorkItemContext)
 
 //
 // Function definitions
@@ -200,6 +210,19 @@ BusDogTraceListInit(
 VOID
 BusDogTraceListCleanUp(
     VOID
+    );
+
+PBUSDOG_FILTER_TRACE_LLISTITEM
+BusDogCreateTraceListItem(
+    ULONG DeviceId,
+    BUSDOG_REQUEST_TYPE Type,
+    PVOID TraceBuffer,
+    ULONG BufferLength
+    );
+
+VOID 
+BusDogAddTraceWorkItem(
+    IN WDFWORKITEM WorkItem
     );
 
 VOID
