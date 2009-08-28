@@ -76,7 +76,7 @@ BusDogTraceListCleanUp(
 }
 
 PBUSDOG_FILTER_TRACE_LLISTITEM
-BusDogCreateTraceListItem(
+__BusDogCreateTraceListItem(
     ULONG DeviceId,
     BUSDOG_REQUEST_TYPE Type,
     PVOID TraceBuffer,
@@ -189,7 +189,7 @@ __BusDogAddTraceToList(
 }
 
 VOID 
-BusDogAddTraceWorkItem(
+__BusDogAddTraceWorkItem(
     IN WDFWORKITEM WorkItem
     )
 {
@@ -209,6 +209,7 @@ BusDogAddTraceWorkItem(
 
 VOID
 BusDogAddTraceToList(
+    WDFDEVICE device,
     ULONG DeviceId,
     BUSDOG_REQUEST_TYPE Type,
     PVOID TraceBuffer,
@@ -217,10 +218,8 @@ BusDogAddTraceToList(
 {
     PBUSDOG_FILTER_TRACE_LLISTITEM pTraceListItem = NULL; 
 
-    PAGED_CODE ();
-
     pTraceListItem = 
-        BusDogCreateTraceListItem(
+        __BusDogCreateTraceListItem(
             DeviceId,
             Type,
             TraceBuffer,
@@ -228,7 +227,43 @@ BusDogAddTraceToList(
 
     if (pTraceListItem != NULL)
     {
-        __BusDogAddTraceToList(pTraceListItem);
+        if (KeGetCurrentIrql() > APC_LEVEL)
+        {
+            PBUSDOG_WORKITEM_CONTEXT        context;
+            WDF_OBJECT_ATTRIBUTES           attributes;
+            WDF_WORKITEM_CONFIG             workitemConfig;
+            WDFWORKITEM                     hWorkItem;
+            NTSTATUS                        status;
+
+            WDF_OBJECT_ATTRIBUTES_INIT(&attributes);
+
+            WDF_OBJECT_ATTRIBUTES_SET_CONTEXT_TYPE(&attributes, BUSDOG_WORKITEM_CONTEXT);
+
+            attributes.ParentObject = device;
+
+            WDF_WORKITEM_CONFIG_INIT(&workitemConfig, __BusDogAddTraceWorkItem);
+
+            status = WdfWorkItemCreate( &workitemConfig,
+                    &attributes,
+                    &hWorkItem);
+
+            if (NT_SUCCESS(status)) 
+            {
+                context = BusDogGetWorkItemContext(hWorkItem);
+
+                context->pTraceListItem = pTraceListItem;
+
+                WdfWorkItemEnqueue(hWorkItem);
+            }
+            else
+            {
+                KdPrint(("WdfWorkItemCreate failed - 0x%x\n", status));
+            }
+        }
+        else
+        {
+            __BusDogAddTraceToList(pTraceListItem);
+        }
     }
 }
 

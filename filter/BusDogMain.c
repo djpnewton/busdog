@@ -1008,7 +1008,8 @@ BusDogIoRead(
 
     NTSTATUS              status;
     PCHAR                 dataBuffer = NULL;
-    PBUSDOG_CONTEXT       context = BusDogGetDeviceContext(WdfIoQueueGetDevice(Queue));
+    WDFDEVICE             device = WdfIoQueueGetDevice(Queue);
+    PBUSDOG_CONTEXT       context = BusDogGetDeviceContext(device);
 
     if (BusDogFiltering && context->FilterEnabled)
     {
@@ -1036,7 +1037,7 @@ BusDogIoRead(
                 KdPrint(("BusDogIoRead       %2d: Length-0x%x Data-", context->DeviceId, Length));
                 PrintChars(dataBuffer, Length);
 
-                BusDogAddTraceToList(context->DeviceId, BusDogReadRequest, dataBuffer, Length);
+                BusDogAddTraceToList(device, context->DeviceId, BusDogReadRequest, dataBuffer, Length);
             }
             else
             {
@@ -1103,7 +1104,8 @@ BusDogIoWrite(
 
     NTSTATUS                 status;
     PUCHAR                   dataBuffer = NULL;
-    PBUSDOG_CONTEXT          context = BusDogGetDeviceContext(WdfIoQueueGetDevice(Queue));
+    WDFDEVICE                device = WdfIoQueueGetDevice(Queue);
+    PBUSDOG_CONTEXT          context = BusDogGetDeviceContext(device);
 
     if (BusDogFiltering && context->FilterEnabled)
     {
@@ -1132,7 +1134,7 @@ BusDogIoWrite(
                 KdPrint(("BusDogIoWrite      %2d: Length-0x%x Data-", context->DeviceId, Length));
                 PrintChars(dataBuffer, Length);
 
-                BusDogAddTraceToList(context->DeviceId, BusDogWriteRequest, dataBuffer, Length);
+                BusDogAddTraceToList(device, context->DeviceId, BusDogWriteRequest, dataBuffer, Length);
             }
             else
             {
@@ -1260,11 +1262,84 @@ BusDogIoInternalDeviceControl(
     NTSTATUS              status = STATUS_SUCCESS;
     WDFDEVICE             device = WdfIoQueueGetDevice(Queue);
     PBUSDOG_CONTEXT       context = BusDogGetDeviceContext(device);
-    PBUSDOG_FILTER_TRACE_LLISTITEM pTraceListItem = NULL;
+    BOOLEAN               bRead = FALSE;
 
-    if (BusDogFiltering && context->FilterEnabled)
+    BusDogProcessInternalDeviceControl(device,
+        context,
+        Request,
+        IoControlCode,
+        FALSE,
+        &bRead);
+
+    if (bRead)
     {
-        KdPrint(("BusDogIoInternalDeviceControl - Id: %d, IOCTL: %d\n",  context->DeviceId, IoControlCode));
+        //
+        // For reads, we want completion info. Call the helper
+        //  routine to forward the request with a completion routine.
+        //
+
+        BusDogForwardRequestWithCompletion(WdfIoQueueGetDevice(Queue), 
+                Request,
+                BusDogIoInternalDeviceControlComplete,
+                (WDFCONTEXT)IoControlCode);
+    }
+    else
+    {        
+        //
+        // pass the request on to the filtered device
+        //
+
+        BusDogForwardRequest(WdfIoQueueGetDevice(Queue), 
+                Request);
+    }
+}
+
+VOID
+BusDogIoInternalDeviceControlComplete(
+    IN WDFREQUEST Request,
+    IN WDFIOTARGET Target,
+    IN PWDF_REQUEST_COMPLETION_PARAMS Params,
+    IN WDFCONTEXT Context
+    ) 
+{
+    WDFDEVICE             device = WdfIoQueueGetDevice(WdfRequestGetIoQueue(Request));
+    PBUSDOG_CONTEXT       context = BusDogGetDeviceContext(device);
+    BOOLEAN               bRead = TRUE;
+    //WDF_REQUEST_PARAMETERS parameters;
+
+    //WdfRequestGetParameters(Request,
+      //  &parameters);
+      //
+    
+    BusDogProcessInternalDeviceControl(device,
+        context,
+        Request,
+        (ULONG)Context,// Params->Parameters.Ioctl.IoControlCode,// parameters.Parameters.DeviceIoControl.IoControlCode,
+        TRUE,
+        &bRead);
+
+    WdfRequestComplete(Request, Params->IoStatus.Status);
+}
+
+VOID
+BusDogProcessInternalDeviceControl(
+    IN WDFDEVICE Device,
+    IN PBUSDOG_CONTEXT Context,
+    IN WDFREQUEST  Request,
+    IN ULONG  IoControlCode,
+    IN BOOLEAN bCompletion,
+    OUT BOOLEAN* bRead)
+{
+    if (BusDogFiltering && Context->FilterEnabled)
+    {
+        if (bCompletion)
+        {
+            KdPrint(("BusDogIoInternalDeviceControlComplete - Id: %d, IOCTL: %d\n",  Context->DeviceId, IoControlCode));
+        }
+        else
+        {
+            KdPrint(("BusDogIoInternalDeviceControl - Id: %d, IOCTL: %d\n",  Context->DeviceId, IoControlCode));
+        }
 
         switch (IoControlCode)
         {
@@ -1279,83 +1354,50 @@ BusDogIoInternalDeviceControl(
                 if (pUrb->UrbHeader.Function == URB_FUNCTION_BULK_OR_INTERRUPT_TRANSFER)
                 {
                     struct _URB_BULK_OR_INTERRUPT_TRANSFER* pTransfer = (struct _URB_BULK_OR_INTERRUPT_TRANSFER*)pUrb;
-                    BOOLEAN bRead = (BOOLEAN)(pTransfer->TransferFlags & USBD_TRANSFER_DIRECTION_IN);
+                    *bRead = (BOOLEAN)(pTransfer->TransferFlags & USBD_TRANSFER_DIRECTION_IN);
                     
                     KdPrint(("        URB_FUNCTION_BULK_OR_INTERRUPT_TRANSFER\n"));
                     KdPrint(("        TransferBufferLength: %d\n", pTransfer->TransferBufferLength));
-                    KdPrint(("        R/W: %s, MDL: %d\n", bRead ? "read" : "write", pTransfer->TransferBufferMDL != NULL));
+                    KdPrint(("        R/W: %s, MDL: %d\n", *bRead ? "read" : "write", pTransfer->TransferBufferMDL != NULL));
 
-                    KdPrint(("        Data: "));
-                    if (pTransfer->TransferBuffer != NULL)
+                    if (bCompletion && *bRead || !bCompletion && !*bRead)
                     {
-                        PrintChars((PCHAR)pTransfer->TransferBuffer, pTransfer->TransferBufferLength);
+                        KdPrint(("        Data: "));
 
-                        pTraceListItem = BusDogCreateTraceListItem(context->DeviceId, 
-                            bRead ? BusDogReadRequest : BusDogWriteRequest, 
-                            pTransfer->TransferBuffer, 
-                            pTransfer->TransferBufferLength);
-                    }
-                    else if (pTransfer->TransferBufferMDL != NULL)
-                    {
-                        PCHAR pMDLBuf = (PCHAR)MmGetSystemAddressForMdlSafe(pTransfer->TransferBufferMDL, NormalPagePriority);
+                        if (pTransfer->TransferBuffer != NULL)
+                        {
+                            PrintChars((PCHAR)pTransfer->TransferBuffer, pTransfer->TransferBufferLength);
 
-                        PrintChars(pMDLBuf, pTransfer->TransferBufferLength);
+                            BusDogAddTraceToList(Device,
+                                    Context->DeviceId, 
+                                    *bRead ? BusDogReadRequest : BusDogWriteRequest, 
+                                    pTransfer->TransferBuffer, 
+                                    pTransfer->TransferBufferLength);
+                        }
+                        else if (pTransfer->TransferBufferMDL != NULL)
+                        {
+                            PCHAR pMDLBuf = (PCHAR)MmGetSystemAddressForMdlSafe(pTransfer->TransferBufferMDL, NormalPagePriority);
 
-                        pTraceListItem = BusDogCreateTraceListItem(context->DeviceId, 
-                            bRead ? BusDogReadRequest : BusDogWriteRequest, 
-                            pMDLBuf, 
-                            pTransfer->TransferBufferLength);
-                    }
-                    else
-                    {
-                        KdPrint(("Buffer error!\n"));
+                            PrintChars(pMDLBuf, pTransfer->TransferBufferLength);
+
+                            BusDogAddTraceToList(Device,
+                                    Context->DeviceId, 
+                                    *bRead ? BusDogReadRequest : BusDogWriteRequest, 
+                                    pMDLBuf, 
+                                    pTransfer->TransferBufferLength);
+                        }
+                        else
+                        {
+                            KdPrint(("Buffer error!\n"));
+                        }
                     }
                 }
                 break;
             }
         }
 
-        if (pTraceListItem != NULL)
-        {
-
-            PBUSDOG_WORKITEM_CONTEXT        context;
-            WDF_OBJECT_ATTRIBUTES           attributes;
-            WDF_WORKITEM_CONFIG             workitemConfig;
-            WDFWORKITEM                     hWorkItem;
-
-            WDF_OBJECT_ATTRIBUTES_INIT(&attributes);
-
-            WDF_OBJECT_ATTRIBUTES_SET_CONTEXT_TYPE(&attributes, BUSDOG_WORKITEM_CONTEXT);
-
-            attributes.ParentObject = device;
-
-            WDF_WORKITEM_CONFIG_INIT(&workitemConfig, BusDogAddTraceWorkItem);
-
-            status = WdfWorkItemCreate( &workitemConfig,
-                    &attributes,
-                    &hWorkItem);
-
-            if (NT_SUCCESS(status)) 
-            {
-                context = BusDogGetWorkItemContext(hWorkItem);
-
-                context->pTraceListItem = pTraceListItem;
-
-                WdfWorkItemEnqueue(hWorkItem);
-            }
-            else
-            {
-                KdPrint(("WdfWorkItemCreate failed - 0x%x\n", status));
-            }
-        }
     }
-        
-    //
-    // pass the request on to the filtered device
-    //
 
-    BusDogForwardRequest(WdfIoQueueGetDevice(Queue), 
-                          Request);
 }
 
 #endif

@@ -168,6 +168,22 @@ BusDogIoInternalDeviceControl(
     IN ULONG  IoControlCode
     );
 
+VOID
+BusDogIoInternalDeviceControlComplete(
+    IN WDFREQUEST Request,
+    IN WDFIOTARGET Target,
+    IN PWDF_REQUEST_COMPLETION_PARAMS Params,
+    IN WDFCONTEXT Context
+    );
+
+VOID
+BusDogProcessInternalDeviceControl(
+    IN WDFDEVICE Device,
+    IN PBUSDOG_CONTEXT Context,
+    IN WDFREQUEST  Request,
+    IN ULONG  IoControlCode,
+    IN BOOLEAN bCompletion,
+    OUT BOOLEAN* bRead);
 #endif
 
 //
@@ -212,21 +228,9 @@ BusDogTraceListCleanUp(
     VOID
     );
 
-PBUSDOG_FILTER_TRACE_LLISTITEM
-BusDogCreateTraceListItem(
-    ULONG DeviceId,
-    BUSDOG_REQUEST_TYPE Type,
-    PVOID TraceBuffer,
-    ULONG BufferLength
-    );
-
-VOID 
-BusDogAddTraceWorkItem(
-    IN WDFWORKITEM WorkItem
-    );
-
 VOID
 BusDogAddTraceToList(
+    WDFDEVICE device,
     ULONG DeviceId,
     BUSDOG_REQUEST_TYPE Type,
     PVOID TraceBuffer,
