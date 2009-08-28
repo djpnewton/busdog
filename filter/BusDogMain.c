@@ -1305,16 +1305,11 @@ BusDogIoInternalDeviceControlComplete(
     WDFDEVICE             device = WdfIoQueueGetDevice(WdfRequestGetIoQueue(Request));
     PBUSDOG_CONTEXT       context = BusDogGetDeviceContext(device);
     BOOLEAN               bRead = TRUE;
-    //WDF_REQUEST_PARAMETERS parameters;
-
-    //WdfRequestGetParameters(Request,
-      //  &parameters);
-      //
     
     BusDogProcessInternalDeviceControl(device,
         context,
         Request,
-        (ULONG)Context,// Params->Parameters.Ioctl.IoControlCode,// parameters.Parameters.DeviceIoControl.IoControlCode,
+        (ULONG)Context,
         TRUE,
         &bRead);
 
