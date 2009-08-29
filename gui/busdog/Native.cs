@@ -343,10 +343,13 @@ namespace busdog
                         Marshal.PtrToStructure(new IntPtr(outBuf.ToInt64() + index),
                             typeof(BUSDOG_FILTER_TRACE));
                     index += Marshal.SizeOf(typeof(BUSDOG_FILTER_TRACE));
-                    byte[] trace = new byte[filterTrace.BufferSize];
-                    Marshal.Copy(new IntPtr(outBuf.ToInt32() + index), trace, 0, (int)filterTrace.BufferSize);
+                    if (bytesReturned >= index + filterTrace.BufferSize)
+                    {
+                        byte[] trace = new byte[filterTrace.BufferSize];
+                        Marshal.Copy(new IntPtr(outBuf.ToInt32() + index), trace, 0, (int)filterTrace.BufferSize);
+                        filterTraces.Add(new FilterTrace(filterTrace.DeviceId, filterTrace.Type, filterTrace.Timestamp, trace));
+                    }
                     index += (int)filterTrace.BufferSize;
-                    filterTraces.Add(new FilterTrace(filterTrace.DeviceId, filterTrace.Type, filterTrace.Timestamp, trace));
                 }        
             }
             else
