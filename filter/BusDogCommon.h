@@ -58,37 +58,23 @@ typedef struct _CONTROL_DEVICE_EXTENSION {
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(CONTROL_DEVICE_EXTENSION,
                                         ControlGetData)
 
-typedef struct Node 
+typedef struct
 {
+    ULONG                           ItemSize; // BUSDOG_FILTER_TRACE comes after this member in memory
 
-    struct Node*            Prev;
+} BUSDOG_FILTER_TRACE_FIFO_ITEM, *PBUSDOG_FILTER_TRACE_FIFO_ITEM;
 
-    PBUSDOG_FILTER_TRACE    Trace;
-
-    struct Node*            Next;
-
-} BUSDOG_FILTER_TRACE_LLISTITEM, *PBUSDOG_FILTER_TRACE_LLISTITEM;
+#define BUSDOG_FILTER_TRACE_FIFO_LENGTH 100
 
 typedef struct
 {
-    ULONG                           Count;
+    PBUSDOG_FILTER_TRACE_FIFO_ITEM  TraceItems[BUSDOG_FILTER_TRACE_FIFO_LENGTH];
 
-    PBUSDOG_FILTER_TRACE_LLISTITEM  Head;
-    
-    PBUSDOG_FILTER_TRACE_LLISTITEM  Tail;
+    ULONG                           WriteIndex;
 
-} BUSDOG_FILTER_TRACE_LLIST;
+    ULONG                           ReadIndex;
 
-#define BUSDOG_FILTER_TRACE_LIST_MAX_LENGTH 100
-
-typedef struct _BUSDOG_WORKITEM_CONTEXT {
-
-    PBUSDOG_FILTER_TRACE_LLISTITEM       pTraceListItem;
-
-} BUSDOG_WORKITEM_CONTEXT, *PBUSDOG_WORKITEM_CONTEXT;
-
-WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(BUSDOG_WORKITEM_CONTEXT,
-                                        BusDogGetWorkItemContext)
+} BUSDOG_FILTER_TRACE_FIFO;
 
 //
 // Function definitions
@@ -219,17 +205,17 @@ BusDogFillBufferWithDeviceIds(
 //
 
 NTSTATUS
-BusDogTraceListInit(
+BusDogTraceFifoInit(
     WDFDRIVER Driver
     );
 
 VOID
-BusDogTraceListCleanUp(
+BusDogTraceFifoCleanUp(
     VOID
     );
 
 VOID
-BusDogAddTraceToList(
+BusDogAddTraceToFifo(
     WDFDEVICE device,
     ULONG DeviceId,
     BUSDOG_REQUEST_TYPE Type,

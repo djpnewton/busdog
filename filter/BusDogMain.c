@@ -121,10 +121,10 @@ Return Value:
     }
 
     //
-    // Init trace list
+    // Init trace fifo
     //
 
-    status = BusDogTraceListInit(hDriver);
+    status = BusDogTraceFifoInit(hDriver);
 
 
     return status;
@@ -138,10 +138,10 @@ BusDogDriverUnload (
     KdPrint(("BusDog Filter Driver - DriverUnload.\n"));
 
     //
-    // Clean up the trace list
+    // Clean up the trace fifo
     //
 
-    BusDogTraceListCleanUp();
+    BusDogTraceFifoCleanUp();
 
 }
 
@@ -862,7 +862,7 @@ Return Value:
 
             }
 
-            KdPrint(("BusDog - get device list\n"));
+            KdPrint(("BusDog - get device fifo\n"));
 
 
             //
@@ -1037,7 +1037,7 @@ BusDogIoRead(
                 KdPrint(("BusDogIoRead       %2d: Length-0x%x Data-", context->DeviceId, Length));
                 PrintChars(dataBuffer, Length);
 
-                BusDogAddTraceToList(device, context->DeviceId, BusDogReadRequest, dataBuffer, Length);
+                BusDogAddTraceToFifo(device, context->DeviceId, BusDogReadRequest, dataBuffer, Length);
             }
             else
             {
@@ -1134,7 +1134,7 @@ BusDogIoWrite(
                 KdPrint(("BusDogIoWrite      %2d: Length-0x%x Data-", context->DeviceId, Length));
                 PrintChars(dataBuffer, Length);
 
-                BusDogAddTraceToList(device, context->DeviceId, BusDogWriteRequest, dataBuffer, Length);
+                BusDogAddTraceToFifo(device, context->DeviceId, BusDogWriteRequest, dataBuffer, Length);
             }
             else
             {
@@ -1363,7 +1363,7 @@ BusDogProcessInternalDeviceControl(
                         {
                             PrintChars((PCHAR)pTransfer->TransferBuffer, pTransfer->TransferBufferLength);
 
-                            BusDogAddTraceToList(Device,
+                            BusDogAddTraceToFifo(Device,
                                     Context->DeviceId, 
                                     *bRead ? BusDogReadRequest : BusDogWriteRequest, 
                                     pTransfer->TransferBuffer, 
@@ -1375,7 +1375,7 @@ BusDogProcessInternalDeviceControl(
 
                             PrintChars(pMDLBuf, pTransfer->TransferBufferLength);
 
-                            BusDogAddTraceToList(Device,
+                            BusDogAddTraceToFifo(Device,
                                     Context->DeviceId, 
                                     *bRead ? BusDogReadRequest : BusDogWriteRequest, 
                                     pMDLBuf, 

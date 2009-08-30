@@ -1,13 +1,13 @@
 #include "BusDogCommon.h"
 
 //
-// This linked list stores all the filter traces
+// This fifo stores all the filter traces
 //
-BUSDOG_FILTER_TRACE_LLIST   BusDogTraceList;
-WDFSPINLOCK                 BusDogTraceListLock;
+BUSDOG_FILTER_TRACE_FIFO    BusDogTraceFifo;
+WDFSPINLOCK                 BusDogTraceFifoLock;
 
 NTSTATUS
-BusDogTraceListInit(
+BusDogTraceFifoInit(
     WDFDRIVER Driver
     )
 {
@@ -17,18 +17,19 @@ BusDogTraceListInit(
     PAGED_CODE ();
 
     //
-    // Init our trace list and create a lock for it
+    // Init our trace fifo and create a lock for it
     //
 
-    BusDogTraceList.Count = 0;
-    BusDogTraceList.Head = NULL;
-    BusDogTraceList.Tail = NULL;
+    RtlZeroMemory(&BusDogTraceFifo.TraceItems[0],
+        BUSDOG_FILTER_TRACE_FIFO_LENGTH * sizeof(PBUSDOG_FILTER_TRACE_FIFO_ITEM));
+    BusDogTraceFifo.WriteIndex = 0;
+    BusDogTraceFifo.ReadIndex = 0;
 
     WDF_OBJECT_ATTRIBUTES_INIT(&attributes);
     attributes.ParentObject = Driver;
 
     status = WdfSpinLockCreate(&attributes,
-                                &BusDogTraceListLock);
+                                &BusDogTraceFifoLock);
     if (!NT_SUCCESS(status))
     {
         KdPrint( ("WdfWaitLockCreate failed with status 0x%x\n", status));
@@ -38,45 +39,40 @@ BusDogTraceListInit(
 }
 
 VOID
-BusDogTraceListCleanUp(
+BusDogTraceFifoCleanUp(
     VOID
     )
 {
+    ULONG i;
 
     PAGED_CODE ();
 
     //
-    // Clean up anything in the trace list
+    // Clean up anything in the trace fifo
     //
 
-    WdfSpinLockAcquire(BusDogTraceListLock);
-    
-    while (BusDogTraceList.Count > 0)
+    WdfSpinLockAcquire(BusDogTraceFifoLock);
+
+    for (i = 0; i < BUSDOG_FILTER_TRACE_FIFO_LENGTH; i++)
     {
-        PBUSDOG_FILTER_TRACE_LLISTITEM Node = BusDogTraceList.Tail;
-
-        if (Node->Prev != NULL)
+        if (BusDogTraceFifo.TraceItems[i] != NULL)
         {
-            BusDogTraceList.Tail = Node->Prev;
+            ExFreePool(BusDogTraceFifo.TraceItems[i]);
+
+            BusDogTraceFifo.TraceItems[i] = NULL;
         }
-
-        ExFreePool(Node->Trace);
-
-        ExFreePool(Node);
-
-        BusDogTraceList.Count--;
     }
 
-    BusDogTraceList.Head = NULL;
+    BusDogTraceFifo.WriteIndex = 0;
 
-    BusDogTraceList.Tail = NULL;
+    BusDogTraceFifo.ReadIndex = 0;
 
-    WdfSpinLockRelease(BusDogTraceListLock);
-    
+    WdfSpinLockRelease(BusDogTraceFifoLock);
 }
 
-PBUSDOG_FILTER_TRACE_LLISTITEM
-__BusDogCreateTraceListItem(
+PBUSDOG_FILTER_TRACE_FIFO_ITEM
+__BusDogCreateTrace(
+    PBUSDOG_FILTER_TRACE_FIFO_ITEM pTraceItem,
     ULONG DeviceId,
     BUSDOG_REQUEST_TYPE Type,
     PVOID TraceBuffer,
@@ -84,110 +80,64 @@ __BusDogCreateTraceListItem(
     )
 {
     PBUSDOG_FILTER_TRACE pTrace;
-    PBUSDOG_FILTER_TRACE_LLISTITEM pTraceListItem;
+    ULONG requiredItemSize = sizeof(BUSDOG_FILTER_TRACE_FIFO_ITEM) + sizeof(BUSDOG_FILTER_TRACE) + BufferLength;
 
-    pTrace = ExAllocatePoolWithTag(
-            NonPagedPool,
-            sizeof(BUSDOG_FILTER_TRACE) + BufferLength,
-            'GATT');
+    //
+    // Check if we will need to reallocate the trace item to fit the buffer
+    //
 
-    if (pTrace == NULL)
+    if (pTraceItem != NULL && pTraceItem->ItemSize < requiredItemSize)
     {
-        KdPrint(("ExAllocatePoolWithTag failed\n"));
-        
-        return NULL;
-    }
-    else
-    {
-        pTrace->DeviceId = DeviceId;
+        ExFreePool(pTraceItem);
 
-        pTrace->Type = Type;
-
-        pTrace->Timestamp = BusDogGetTimeStamp();
-
-        pTrace->BufferSize = BufferLength;
-
-        RtlCopyMemory((PCHAR)pTrace + sizeof(BUSDOG_FILTER_TRACE),
-                TraceBuffer,
-                BufferLength);
+        pTraceItem = NULL;
     }
 
-    pTraceListItem = ExAllocatePoolWithTag(
-            NonPagedPool,
-            sizeof(BUSDOG_FILTER_TRACE_LLISTITEM),
-            'TILT');
+    //
+    // Allocate memory if neccesary
+    //
 
-    if (pTraceListItem == NULL)
+    if (pTraceItem == NULL)
     {
-        KdPrint(("ExAllocatePoolWithTag failed\n"));
-        
-        ExFreePool(pTrace);
 
-        return NULL;
+        pTraceItem = ExAllocatePoolWithTag(
+                NonPagedPool,
+                requiredItemSize,
+                'GATT');
+
+        if (pTraceItem == NULL)
+        {
+            KdPrint(("ExAllocatePoolWithTag failed\n"));
+
+            return NULL;
+        }
+
+        pTraceItem->ItemSize = requiredItemSize;
     }
-    else
-    {
-        pTraceListItem->Prev = NULL;
 
-        pTraceListItem->Trace = pTrace;
+    //
+    // Copy in the trace info
+    //
 
-        pTraceListItem->Next = NULL;
-    }
+    pTrace = (PBUSDOG_FILTER_TRACE)((PCHAR)pTraceItem + sizeof(BUSDOG_FILTER_TRACE_FIFO_ITEM));
 
-    return pTraceListItem;
+    pTrace->DeviceId = DeviceId;
+
+    pTrace->Type = Type;
+
+    pTrace->Timestamp = BusDogGetTimeStamp();
+
+    pTrace->BufferSize = BufferLength;
+
+    RtlCopyMemory((PCHAR)pTrace + sizeof(BUSDOG_FILTER_TRACE),
+            TraceBuffer,
+            BufferLength);
+
+    return pTraceItem;
 }
 
 VOID
-__BusDogAddTraceToList(
-    PBUSDOG_FILTER_TRACE_LLISTITEM pTraceListItem
-    )
-{
-    //
-    // Add trace to list
-    //
-
-    WdfSpinLockAcquire(BusDogTraceListLock);
-
-    if (BusDogTraceList.Head != NULL)
-    {
-        BusDogTraceList.Head->Prev = pTraceListItem;
-    }
-
-    pTraceListItem->Next = BusDogTraceList.Head;
-
-    BusDogTraceList.Head = pTraceListItem;
-
-    if (BusDogTraceList.Tail == NULL)
-    {
-        BusDogTraceList.Tail = pTraceListItem;
-    }
-
-    BusDogTraceList.Count++;
-
-    //
-    // Remove from tail if list too long
-    //
-
-    if (BusDogTraceList.Count > BUSDOG_FILTER_TRACE_LIST_MAX_LENGTH)
-    {
-        KdPrint(("BusDog - On noes! We have overflow\n"));
-
-        pTraceListItem = BusDogTraceList.Tail;
-
-        BusDogTraceList.Tail = pTraceListItem->Prev;
-
-        ExFreePool(pTraceListItem->Trace);
-
-        ExFreePool(pTraceListItem);
-
-        BusDogTraceList.Count--;
-    }
-
-    WdfSpinLockRelease(BusDogTraceListLock);
-}
-
-VOID
-BusDogAddTraceToList(
+BusDogAddTraceToFifo(
     WDFDEVICE device,
     ULONG DeviceId,
     BUSDOG_REQUEST_TYPE Type,
@@ -195,82 +145,94 @@ BusDogAddTraceToList(
     ULONG BufferLength
     )
 {
-    PBUSDOG_FILTER_TRACE_LLISTITEM pTraceListItem = NULL; 
+    PBUSDOG_FILTER_TRACE_FIFO_ITEM pTraceItem = NULL; 
 
-    pTraceListItem = 
-        __BusDogCreateTraceListItem(
+    WdfSpinLockAcquire(BusDogTraceFifoLock);
+
+    pTraceItem = BusDogTraceFifo.TraceItems[BusDogTraceFifo.WriteIndex];
+
+    pTraceItem = 
+        __BusDogCreateTrace(
+            pTraceItem,
             DeviceId,
             Type,
             TraceBuffer,
             BufferLength);
 
-    if (pTraceListItem != NULL)
+    BusDogTraceFifo.TraceItems[BusDogTraceFifo.WriteIndex] = 
+        pTraceItem;
+
+    BusDogTraceFifo.WriteIndex++;
+
+    if (BusDogTraceFifo.WriteIndex >= BUSDOG_FILTER_TRACE_FIFO_LENGTH)
+        BusDogTraceFifo.WriteIndex = 0;
+
+    if (BusDogTraceFifo.WriteIndex == BusDogTraceFifo.ReadIndex)
     {
-        __BusDogAddTraceToList(pTraceListItem);
+        KdPrint(("BusDog - On noes! We have overflow\n"));
     }
+
+    WdfSpinLockRelease(BusDogTraceFifoLock);
 }
 
 //
-// Assumes trace list already locked
+// Assumes trace fifo already locked
 //
 PBUSDOG_FILTER_TRACE
-__BusDogGetTraceFromList(
+__BusDogRetrieveTrace(
     VOID
     )
 {
     PBUSDOG_FILTER_TRACE pTrace = NULL;
 
-    if (BusDogTraceList.Count > 0)
+    if (BusDogTraceFifo.ReadIndex != BusDogTraceFifo.WriteIndex)
     {
-        PBUSDOG_FILTER_TRACE_LLISTITEM Node = BusDogTraceList.Tail;
+        PBUSDOG_FILTER_TRACE_FIFO_ITEM pTraceItem = 
+            BusDogTraceFifo.TraceItems[BusDogTraceFifo.ReadIndex];
 
-        if (Node->Prev != NULL)
+        if (pTraceItem == NULL)
         {
-            BusDogTraceList.Tail = Node->Prev;
-        }
-        else if (BusDogTraceList.Count == 1)
-        {
-            BusDogTraceList.Tail = BusDogTraceList.Head;
-        }
-        else
-        {
-            KdPrint(("BusDogError, I dont think I should be here"));
+            KdPrint(("BusDog - On noes! invalid trace\n"));
+
+            return NULL;
         }
 
-        pTrace = Node->Trace;
+        pTrace = (PBUSDOG_FILTER_TRACE)((PCHAR)pTraceItem + sizeof(BUSDOG_FILTER_TRACE_FIFO_ITEM));
 
-        ExFreePool(Node);
+        BusDogTraceFifo.ReadIndex++;
 
-        BusDogTraceList.Count--;
-    }
-    else
-    {
-        //
-        // No traces left
-        //
-
-        BusDogTraceList.Head = NULL;
-
-        BusDogTraceList.Tail = NULL;
+        if (BusDogTraceFifo.ReadIndex >= BUSDOG_FILTER_TRACE_FIFO_LENGTH)
+        {
+            BusDogTraceFifo.ReadIndex = 0;
+        }
     }
 
     return pTrace;
 }
 
 //
-// Assumes trace list already locked
+// Assumes trace fifo already locked
 //
 size_t
-__BusDogGetLastTraceSize(
+__BusDogRetrieveTraceSize(
     VOID
     )
 {
-    if (BusDogTraceList.Count > 0)
+    PBUSDOG_FILTER_TRACE_FIFO_ITEM pTraceItem = 
+        BusDogTraceFifo.TraceItems[BusDogTraceFifo.ReadIndex];
+
+    PBUSDOG_FILTER_TRACE pTrace;
+
+    if (pTraceItem == NULL)
     {
-        return sizeof(BUSDOG_FILTER_TRACE) + BusDogTraceList.Tail->Trace->BufferSize;
+        KdPrint(("BusDog - On noes! invalid trace\n"));
+
+        return 0;
     }
-        
-    return 0;
+
+    pTrace = (PBUSDOG_FILTER_TRACE)((PCHAR)pTraceItem + sizeof(BUSDOG_FILTER_TRACE_FIFO_ITEM));
+
+    return sizeof(BUSDOG_FILTER_TRACE) + pTrace->BufferSize;
 }
 
 size_t
@@ -285,11 +247,11 @@ BusDogFillBufferWithTraces(
 
     size_t BytesWritten = 0;
 
-    WdfSpinLockAcquire(BusDogTraceListLock);
+    WdfSpinLockAcquire(BusDogTraceFifoLock);
 
     while (TRUE)
     {
-        TraceSize = __BusDogGetLastTraceSize();
+        TraceSize = __BusDogRetrieveTraceSize();
             
         if (TraceSize > BufferSize - BytesWritten)
         {
@@ -298,7 +260,7 @@ BusDogFillBufferWithTraces(
             break;
         }
 
-        pTrace = __BusDogGetTraceFromList();
+        pTrace = __BusDogRetrieveTrace();
 
         if (pTrace == NULL)
         {
@@ -316,11 +278,9 @@ BusDogFillBufferWithTraces(
         BytesWritten += TraceSize;
 
         KdPrint(("     Bytes written %d\n", BytesWritten));
-
-        ExFreePool(pTrace);
     }
 
-    WdfSpinLockRelease(BusDogTraceListLock);
+    WdfSpinLockRelease(BusDogTraceFifoLock);
 
     return BytesWritten;
 }
