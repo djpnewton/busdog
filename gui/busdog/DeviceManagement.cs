@@ -137,12 +137,14 @@ namespace busdog
                 while (!((lastDevice == true)));				
 
 				return deviceFound;
-			}
-			catch (Exception ex)
+            }
+#pragma warning disable 0168
+            catch (Exception ex)
 			{
 				throw;
-			}
-				finally
+            }
+#pragma warning restore 0168
+            finally
 			{
 				if (detailDataBuffer != IntPtr.Zero) 
 				{
@@ -251,12 +253,14 @@ namespace busdog
 					return true;
 				}
 			}
-			catch (Exception ex)
+#pragma warning disable 0168
+            catch (Exception ex)
 			{
 				throw;
-			}
-			finally
-			{
+            }
+#pragma warning restore 0168
+            finally
+            {
 				if (devBroadcastDeviceInterfaceBuffer != IntPtr.Zero)
 				{
 					// Free the memory allocated previously by AllocHGlobal.
@@ -295,11 +299,13 @@ namespace busdog
 
 				DeviceManagement.UnregisterDeviceNotification(deviceNotificationHandle);
 			}
-			catch (Exception ex)
+#pragma warning disable 0168
+            catch (Exception ex)
 			{
 				throw;
 			}
-		}
+#pragma warning restore 0168
+        }
 	}
 }
 

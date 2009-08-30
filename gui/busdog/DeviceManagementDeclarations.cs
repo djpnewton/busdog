@@ -255,6 +255,7 @@ namespace busdog
 			internal Int32 dbch_reserved;
 		}
 
+#pragma warning disable 0649
 		internal struct SP_DEVICE_INTERFACE_DATA
 		{
 			internal Int32 cbSize;
@@ -267,9 +268,10 @@ namespace busdog
 		{
 			internal Int32 cbSize;
 			internal String DevicePath;
-		}
+        }
+#pragma warning restore 0649
 
-		internal struct SP_DEVINFO_DATA
+        internal struct SP_DEVINFO_DATA
 		{
 			internal Int32 cbSize;
 			internal System.Guid ClassGuid;
