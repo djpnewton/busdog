@@ -4,7 +4,7 @@
 // This linked list stores all the filter traces
 //
 BUSDOG_FILTER_TRACE_LLIST   BusDogTraceList;
-WDFWAITLOCK                 BusDogTraceListLock;
+WDFSPINLOCK                 BusDogTraceListLock;
 
 NTSTATUS
 BusDogTraceListInit(
@@ -27,7 +27,7 @@ BusDogTraceListInit(
     WDF_OBJECT_ATTRIBUTES_INIT(&attributes);
     attributes.ParentObject = Driver;
 
-    status = WdfWaitLockCreate(&attributes,
+    status = WdfSpinLockCreate(&attributes,
                                 &BusDogTraceListLock);
     if (!NT_SUCCESS(status))
     {
@@ -49,7 +49,7 @@ BusDogTraceListCleanUp(
     // Clean up anything in the trace list
     //
 
-    WdfWaitLockAcquire(BusDogTraceListLock, NULL);
+    WdfSpinLockAcquire(BusDogTraceListLock);
     
     while (BusDogTraceList.Count > 0)
     {
@@ -71,7 +71,7 @@ BusDogTraceListCleanUp(
 
     BusDogTraceList.Tail = NULL;
 
-    WdfWaitLockRelease(BusDogTraceListLock);
+    WdfSpinLockRelease(BusDogTraceListLock);
     
 }
 
@@ -142,13 +142,11 @@ __BusDogAddTraceToList(
     PBUSDOG_FILTER_TRACE_LLISTITEM pTraceListItem
     )
 {
-    PAGED_CODE ();
-
     //
     // Add trace to list
     //
 
-    WdfWaitLockAcquire(BusDogTraceListLock, NULL);
+    WdfSpinLockAcquire(BusDogTraceListLock);
 
     if (BusDogTraceList.Head != NULL)
     {
@@ -185,26 +183,7 @@ __BusDogAddTraceToList(
         BusDogTraceList.Count--;
     }
 
-    WdfWaitLockRelease(BusDogTraceListLock);
-}
-
-VOID 
-__BusDogAddTraceWorkItem(
-    IN WDFWORKITEM WorkItem
-    )
-{
-    PBUSDOG_WORKITEM_CONTEXT pItemContext;
-    NTSTATUS status;
-
-    PAGED_CODE ();
-
-    pItemContext = BusDogGetWorkItemContext(WorkItem);
-
-    __BusDogAddTraceToList(pItemContext->pTraceListItem);
-
-    WdfObjectDelete(WorkItem);
-
-    return;
+    WdfSpinLockRelease(BusDogTraceListLock);
 }
 
 VOID
@@ -227,43 +206,7 @@ BusDogAddTraceToList(
 
     if (pTraceListItem != NULL)
     {
-        if (KeGetCurrentIrql() > APC_LEVEL)
-        {
-            PBUSDOG_WORKITEM_CONTEXT        context;
-            WDF_OBJECT_ATTRIBUTES           attributes;
-            WDF_WORKITEM_CONFIG             workitemConfig;
-            WDFWORKITEM                     hWorkItem;
-            NTSTATUS                        status;
-
-            WDF_OBJECT_ATTRIBUTES_INIT(&attributes);
-
-            WDF_OBJECT_ATTRIBUTES_SET_CONTEXT_TYPE(&attributes, BUSDOG_WORKITEM_CONTEXT);
-
-            attributes.ParentObject = device;
-
-            WDF_WORKITEM_CONFIG_INIT(&workitemConfig, __BusDogAddTraceWorkItem);
-
-            status = WdfWorkItemCreate( &workitemConfig,
-                    &attributes,
-                    &hWorkItem);
-
-            if (NT_SUCCESS(status)) 
-            {
-                context = BusDogGetWorkItemContext(hWorkItem);
-
-                context->pTraceListItem = pTraceListItem;
-
-                WdfWorkItemEnqueue(hWorkItem);
-            }
-            else
-            {
-                KdPrint(("WdfWorkItemCreate failed - 0x%x\n", status));
-            }
-        }
-        else
-        {
-            __BusDogAddTraceToList(pTraceListItem);
-        }
+        __BusDogAddTraceToList(pTraceListItem);
     }
 }
 
@@ -276,8 +219,6 @@ __BusDogGetTraceFromList(
     )
 {
     PBUSDOG_FILTER_TRACE pTrace = NULL;
-
-    PAGED_CODE ();
 
     if (BusDogTraceList.Count > 0)
     {
@@ -344,9 +285,7 @@ BusDogFillBufferWithTraces(
 
     size_t BytesWritten = 0;
 
-    PAGED_CODE ();
-
-    WdfWaitLockAcquire(BusDogTraceListLock, NULL);
+    WdfSpinLockAcquire(BusDogTraceListLock);
 
     while (TRUE)
     {
@@ -381,7 +320,7 @@ BusDogFillBufferWithTraces(
         ExFreePool(pTrace);
     }
 
-    WdfWaitLockRelease(BusDogTraceListLock);
+    WdfSpinLockRelease(BusDogTraceListLock);
 
     return BytesWritten;
 }
