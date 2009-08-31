@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003"
+    DefaultTargets = "Build">
+
+    <PropertyGroup>
+        <AssemblyName>busdog</AssemblyName>
+        <OutputPath>Bin\</OutputPath>
+        <OutputType>WinExe</OutputType>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="*.cs" />
+    </ItemGroup>
+
+    <Target Name="Resources">
+        <GenerateResource
+            Sources="MainForm.resx; Driver.txt"
+            OutputResources="$(OutputPath)busdog.MainForm.resources; $(OutputPath)Driver.resources">
+            <Output TaskParameter="OutputResources"
+                ItemName="Resources"/>
+        </GenerateResource>
+    </Target>
+
+
+    <Target Name="Build" DependsOnTargets="Resources">
+        <MakeDir Directories="$(OutputPath)" Condition="!Exists('$(OutputPath)')" />
+        <Csc
+            Sources="@(Compile)"
+            References="@(Reference)"
+            Resources="@(Resources)"
+            OutputAssembly="$(OutputPath)$(AssemblyName).exe">
+        </Csc>
+    </Target>
+
+    <Target Name="Clean" >
+        <Delete Files="$(OutputPath)$(AssemblyName).exe" />
+    </Target>
+
+    <Target Name="Rebuild" DependsOnTargets="Clean;Build" />
+    
+</Project>
+

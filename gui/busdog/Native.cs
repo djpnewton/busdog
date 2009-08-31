@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
@@ -136,6 +135,23 @@ namespace busdog
 
     public class Native
     {
+        uint outBufferSize = 0x1000;
+        IntPtr outBuffer;
+        uint inBufferSize = 0x1000;
+        IntPtr inBuffer;
+ 
+        public Native()
+        {
+            outBuffer = Marshal.AllocHGlobal((int)outBufferSize);
+            inBuffer = Marshal.AllocHGlobal((int)inBufferSize);
+        }
+
+        ~Native()
+        {
+            Marshal.FreeHGlobal(outBuffer);
+            Marshal.FreeHGlobal(inBuffer);
+        }
+
         static uint CTL_CODE(uint deviceType, uint function, uint method, uint access)
         {
             return ((deviceType) << 16) | ((access) << 14) | ((function) << 2) | (method);
@@ -265,15 +281,13 @@ namespace busdog
         public bool GetDeviceList(out List<DeviceId> deviceIds)
         {
             deviceIds = new List<DeviceId>();
-            uint outBufSize = 1024;
-            IntPtr outBuf = Marshal.AllocHGlobal((int)outBufSize);
             uint bytesReturned;
             bool result =
                 DeviceIoControl(IOCTL_BUSDOG_GET_DEVICE_LIST,
                     IntPtr.Zero,
                     0,
-                    outBuf,
-                    outBufSize,
+                    outBuffer,
+                    outBufferSize,
                     out bytesReturned);
             if (result)
             {
@@ -282,11 +296,11 @@ namespace busdog
                 {
                     BUSDOG_DEVICE_ID devId =
                         (BUSDOG_DEVICE_ID)
-                        Marshal.PtrToStructure(new IntPtr(outBuf.ToInt64() + index),
+                        Marshal.PtrToStructure(new IntPtr(outBuffer.ToInt64() + index),
                             typeof(BUSDOG_DEVICE_ID));
                     index += Marshal.SizeOf(typeof(BUSDOG_DEVICE_ID));
                     string hardwareId =
-                        Marshal.PtrToStringUni(new IntPtr(outBuf.ToInt32() + index),
+                        Marshal.PtrToStringUni(new IntPtr(outBuffer.ToInt32() + index),
                             (int)devId.PhysicalDeviceObjectNameSize / 2);
                     index += (int)devId.PhysicalDeviceObjectNameSize;
                     deviceIds.Add(new DeviceId(devId.DeviceId, Convert.ToBoolean(devId.Enabled), hardwareId));
@@ -296,7 +310,6 @@ namespace busdog
             {
                 System.Diagnostics.Debug.WriteLine(Marshal.GetLastWin32Error());
             }
-            Marshal.FreeHGlobal(outBuf);
             return result;
         }
 
@@ -323,15 +336,13 @@ namespace busdog
         public bool GetTraceList(out List<FilterTrace> filterTraces)
         {
             filterTraces = new List<FilterTrace>();
-            uint outBufSize = 0x1000;
-            IntPtr outBuf = Marshal.AllocHGlobal((int)outBufSize);
             uint bytesReturned;
             bool result =
                 DeviceIoControl(IOCTL_BUSDOG_GET_BUFFER,
                     IntPtr.Zero,
                     0,
-                    outBuf,
-                    outBufSize,
+                    outBuffer,
+                    outBufferSize,
                     out bytesReturned);
             if (result)
             {
@@ -340,13 +351,13 @@ namespace busdog
                 {
                     BUSDOG_FILTER_TRACE filterTrace =
                         (BUSDOG_FILTER_TRACE)
-                        Marshal.PtrToStructure(new IntPtr(outBuf.ToInt64() + index),
+                        Marshal.PtrToStructure(new IntPtr(outBuffer.ToInt64() + index),
                             typeof(BUSDOG_FILTER_TRACE));
                     index += Marshal.SizeOf(typeof(BUSDOG_FILTER_TRACE));
                     if (bytesReturned >= index + filterTrace.BufferSize)
                     {
                         byte[] trace = new byte[filterTrace.BufferSize];
-                        Marshal.Copy(new IntPtr(outBuf.ToInt32() + index), trace, 0, (int)filterTrace.BufferSize);
+                        Marshal.Copy(new IntPtr(outBuffer.ToInt32() + index), trace, 0, (int)filterTrace.BufferSize);
                         filterTraces.Add(new FilterTrace(filterTrace.DeviceId, filterTrace.Type, filterTrace.Timestamp, trace));
                     }
                     index += (int)filterTrace.BufferSize;
@@ -356,7 +367,6 @@ namespace busdog
             {
                 System.Diagnostics.Debug.WriteLine(Marshal.GetLastWin32Error());
             }
-            Marshal.FreeHGlobal(outBuf);
             return result;
         }
 
