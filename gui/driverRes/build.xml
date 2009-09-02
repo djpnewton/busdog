@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003"
+    DefaultTargets = "Build">
+
+    <PropertyGroup>
+        <AssemblyName>driverRes</AssemblyName>
+        <OutputPath>Bin\</OutputPath>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="*.cs" />
+    </ItemGroup>
+
+    <Target Name="Build">
+        <MakeDir Directories="$(OutputPath)" Condition="!Exists('$(OutputPath)')" />
+        <Csc
+            Sources="@(Compile)"
+            OutputAssembly="$(OutputPath)$(AssemblyName).exe">
+        </Csc>
+        <Message Text="Making driver.resx..." />
+        <Exec Command="$(OutputPath)$(AssemblyName).exe $(OutputPath)driver.zip" />
+    </Target>
+
+    <Target Name="Clean" >
+        <Delete Files="$(OutputPath)$(AssemblyName).exe; $(OutputPath)driver.resx" />
+    </Target>
+
+    <Target Name="Rebuild" DependsOnTargets="Clean; Build" />
+    
+</Project>
+

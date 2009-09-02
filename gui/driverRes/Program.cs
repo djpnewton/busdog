@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.IO;
@@ -11,7 +10,9 @@ namespace driverRes
     {
         static int Main(string[] args)
         {
-            const string driver_file = "driver.zip";
+            string driver_file = "driver.zip";
+            if (args.Length > 0)
+                driver_file = args[0];
             if (File.Exists(driver_file))
             {
                 FileStream fs = File.OpenRead(driver_file);
@@ -19,7 +20,9 @@ namespace driverRes
                 fs.Read(data, 0, data.Length);
                 fs.Close();
 
-                System.Resources.ResXResourceWriter rsxw = new System.Resources.ResXResourceWriter("driver.resx");
+                string output_file = "driver.resx";
+                output_file = Path.Combine(Path.GetDirectoryName(driver_file), output_file);
+                System.Resources.ResXResourceWriter rsxw = new System.Resources.ResXResourceWriter(output_file);
                 rsxw.AddResource("driver", data);
                 rsxw.Close();
                 return 0;

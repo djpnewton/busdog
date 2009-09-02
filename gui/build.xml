@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+    <PropertyGroup>
+        <ReleaseDir>.\release\</ReleaseDir>
+    </PropertyGroup>
+
+    <Target Name="Build">
+        <Message Text="Building busdog gui!" />
+        <MSBuild Projects=".\driverRes\build.xml" Targets="Build" />
+        <Copy SourceFiles=".\driverRes\bin\driver.resx" DestinationFolder=".\busdog" />
+        <MSBuild Projects=".\busdog\build.xml" Targets="Build" />
+    </Target>
+
+    <Target Name="Release" DependsOnTargets="Build">
+        <MakeDir Directories="$(ReleaseDir)"  Condition="!Exists('$(ReleaseDir)')" />
+        <CreateItem Include=".\busdog\bin\*.*" Exclude=".\busdog\bin\*vshost.exe; .\busdog\bin\*.resources">
+            <Output TaskParameter="Include" ItemName="ReleaseFiles"/>
+        </CreateItem>
+        <Copy SourceFiles="@(ReleaseFiles)" DestinationFolder="$(ReleaseDir)"  />
+    </Target>
+
+    <Target Name="Clean" >
+        <MSBuild Projects=".\driverRes\build.xml" Targets="Clean" />
+        <MSBuild Projects=".\busdog\build.xml" Targets="Clean" />
+        <Delete Files="$(ReleaseDir)busdog.exe" />
+    </Target>
+
+    <Target Name="Rebuild" DependsOnTargets="Clean;Build"/>
+
+</Project>
+

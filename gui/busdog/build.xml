@@ -15,7 +15,7 @@
 
     <Target Name="Resources">
         <GenerateResource
-            Sources="MainForm.resx; Driver.txt"
+            Sources="MainForm.resx; driver.resx"
             OutputResources="$(OutputPath)busdog.MainForm.resources; $(OutputPath)Driver.resources">
             <Output TaskParameter="OutputResources"
                 ItemName="Resources"/>
@@ -34,10 +34,10 @@
     </Target>
 
     <Target Name="Clean" >
-        <Delete Files="$(OutputPath)$(AssemblyName).exe" />
+        <Delete Files="$(OutputPath)$(AssemblyName).exe; $(OutputPath)busdog.MainForm.resources; $(OutputPath)Driver.resources; driver.resx" />
     </Target>
 
-    <Target Name="Rebuild" DependsOnTargets="Clean;Build" />
+    <Target Name="Rebuild" DependsOnTargets="Clean; Build" />
     
 </Project>
 
