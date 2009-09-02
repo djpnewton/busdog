@@ -1,12 +1,6 @@
 #include "BusDogCommon.h"
 
 
-//
-// BusDogFiltering controls whether to log filter traces or not
-//
-BOOLEAN         BusDogFiltering = FALSE;
-
-
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text (INIT, DriverEntry)
 #pragma alloc_text (PAGE, BusDogDeviceAdd)
@@ -60,8 +54,8 @@ Return Value:
     WDF_OBJECT_ATTRIBUTES colAttributes;
     WDFDRIVER   hDriver;
 
-    BusDogPrint("DriverEntry\n");
-    BusDogPrint("Built %s %s\n", __DATE__, __TIME__);
+    BusDogPrint(BUSDOG_DEBUG_INFO, "DriverEntry\n");
+    BusDogPrint(BUSDOG_DEBUG_INFO, "Built %s %s\n", __DATE__, __TIME__);
 
     //
     // Initiialize driver config to control the attributes that
@@ -89,7 +83,7 @@ Return Value:
                             &config,
                             &hDriver);
     if (!NT_SUCCESS(status)) {
-        BusDogPrint("WdfDriverCreate failed with status 0x%x\n", status);
+        BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfDriverCreate failed with status 0x%x\n", status);
     }
 
     //
@@ -105,7 +99,7 @@ Return Value:
                                 &BusDogDeviceCollection);
     if (!NT_SUCCESS(status))
     {
-        BusDogPrint("WdfCollectionCreate failed with status 0x%x\n", status);
+        BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfCollectionCreate failed with status 0x%x\n", status);
         return status;
     }
 
@@ -116,7 +110,7 @@ Return Value:
                                 &BusDogDeviceCollectionLock);
     if (!NT_SUCCESS(status))
     {
-        BusDogPrint("WdfWaitLockCreate failed with status 0x%x\n", status);
+        BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfWaitLockCreate failed with status 0x%x\n", status);
         return status;
     }
 
@@ -135,7 +129,7 @@ BusDogDriverUnload (
     IN WDFDRIVER  Driver
     )
 {
-    BusDogPrint("DriverUnload.\n");
+    BusDogPrint(BUSDOG_DEBUG_INFO, "DriverUnload.\n");
 
     //
     // Clean up the trace fifo
@@ -197,7 +191,7 @@ Return Value:
                                   &serialNo,
                                   &returnSize);
     if(!NT_SUCCESS(status)){
-        BusDogPrint("Failed to get the property of PDO: 0x%p\n", DeviceInit);
+        BusDogPrint(BUSDOG_DEBUG_ERROR, "Failed to get the property of PDO: 0x%p\n", DeviceInit);
 
     }
 
@@ -220,7 +214,7 @@ Return Value:
                                             NULL, // pointer minor function table
                                             0); // number of entries in the table
     if (!NT_SUCCESS(status)) {
-        BusDogPrint("WdfDeviceInitAssignWdmIrpPreprocessCallback failed with status 0x%x\n",
+        BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfDeviceInitAssignWdmIrpPreprocessCallback failed with status 0x%x\n",
                                 status);
 
         //
@@ -237,7 +231,7 @@ Return Value:
                                             NULL, // pointer minor function table
                                             0); // number of entries in the table
     if (!NT_SUCCESS(status)) {
-        BusDogPrint("WdfDeviceInitAssignWdmIrpPreprocessCallback failed with status 0x%x\n",
+        BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfDeviceInitAssignWdmIrpPreprocessCallback failed with status 0x%x\n",
                                 status);
 
         //
@@ -271,7 +265,7 @@ Return Value:
     //
     status = WdfDeviceCreate(&DeviceInit, &deviceAttributes, &device);
     if (!NT_SUCCESS(status)) {
-        BusDogPrint("WdfDeviceCreate failed with status code 0x%x\n", status);
+        BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfDeviceCreate failed with status code 0x%x\n", status);
         return status;
     }
 
@@ -329,7 +323,7 @@ Return Value:
         // No need to delete the WDFDEVICE we created, the framework
         //  will clean that up for us.
         //
-        BusDogPrint("WdfIoQueueCreate failed with status code 0x%x\n", status);
+        BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfIoQueueCreate failed with status code 0x%x\n", status);
         
         //
         // Let us not fail AddDevice just because we weren't able to hook up
@@ -350,7 +344,7 @@ Return Value:
     //
     status = WdfCollectionAdd(BusDogDeviceCollection, device);
     if (!NT_SUCCESS(status)) {
-        BusDogPrint("WdfCollectionAdd failed with status code 0x%x\n", status);
+        BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfCollectionAdd failed with status code 0x%x\n", status);
     }
     WdfWaitLockRelease(BusDogDeviceCollectionLock);
 
@@ -360,7 +354,7 @@ Return Value:
 
     status = BusDogCreateControlDevice(device);
     if (!NT_SUCCESS(status)) {
-        BusDogPrint("BusDogCreateControlDevice failed with status 0x%x\n",
+        BusDogPrint(BUSDOG_DEBUG_ERROR, "BusDogCreateControlDevice failed with status 0x%x\n",
                                 status);
         //
         // Let us not fail AddDevice just because we weren't able to create the
@@ -405,7 +399,7 @@ Return Value:
 
     PAGED_CODE();
 
-    BusDogPrint("Entered BusDogDeviceContextCleanup\n");
+    BusDogPrint(BUSDOG_DEBUG_INFO, "Entered BusDogDeviceContextCleanup\n");
 
     WdfWaitLockAcquire(BusDogDeviceCollectionLock, NULL);
 
@@ -493,7 +487,7 @@ Return Value:
         return STATUS_SUCCESS;
     }
 
-    BusDogPrint("Creating Control Device\n");
+    BusDogPrint(BUSDOG_DEBUG_INFO, "Creating Control Device\n");
 
     //
     //
@@ -621,7 +615,7 @@ Return Value:
 
     PAGED_CODE();
 
-    BusDogPrint("Deleting Control Device\n");
+    BusDogPrint(BUSDOG_DEBUG_INFO, "Deleting Control Device\n");
 
     if (ControlDevice) {
         WdfObjectDelete(ControlDevice);
@@ -670,6 +664,7 @@ Return Value:
     PBUSDOG_CONTEXT        context;
     PVOID                  outputBuffer = NULL;
     PBUSDOG_FILTER_ENABLED filterEnabledBuffer;
+    PBUSDOG_DEBUG_LEVEL    debugLevelBuffer;
     size_t                 realLength;
     size_t                 bytesWritten;
     size_t                 bytesNeeded;
@@ -679,7 +674,7 @@ Return Value:
 
     PAGED_CODE();
 
-    BusDogPrint("Ioctl recieved into filter control object.\n");
+    BusDogPrint(BUSDOG_DEBUG_INFO, "Ioctl recieved into filter control object.\n");
 
     //
     // What IOCTL have we got?
@@ -691,7 +686,7 @@ Return Value:
             if (InputBufferLength) 
             {
 
-                BusDogPrint("Sorry buddy...No input buffers allowed\n");
+                BusDogPrint(BUSDOG_DEBUG_WARN, "Sorry buddy...No input buffers allowed\n");
 
                 WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
 
@@ -699,7 +694,7 @@ Return Value:
 
             }
 
-            BusDogPrint("Get buffer\n");
+            BusDogPrint(BUSDOG_DEBUG_INFO, "Get buffer\n");
 
             //
             // Get the output buffer...
@@ -711,7 +706,7 @@ Return Value:
 
             if (!NT_SUCCESS(status)) 
             {
-                BusDogPrint("WdfRequestRetrieveOutputBuffer failed - 0x%x\n",
+                BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfRequestRetrieveOutputBuffer failed - 0x%x\n",
                             status);
 
                 WdfRequestComplete(Request, status);
@@ -740,7 +735,7 @@ Return Value:
             //
             // Set global filtering var
  
-            BusDogPrint("Filtering enabled\n");
+            BusDogPrint(BUSDOG_DEBUG_INFO, "Filtering enabled\n");
 
             BusDogFiltering = TRUE;
 
@@ -754,7 +749,7 @@ Return Value:
             // Set global filtering var
             //
             
-            BusDogPrint("Filtering disabled\n");
+            BusDogPrint(BUSDOG_DEBUG_INFO, "Filtering disabled\n");
 
             BusDogFiltering = FALSE;
 
@@ -764,7 +759,7 @@ Return Value:
 
         case IOCTL_BUSDOG_PRINT_DEVICES: 
 
-            BusDogPrint("IOCTL_BUSDOG_PRINT_DEVICES is depreciated\n");
+            BusDogPrint(BUSDOG_DEBUG_WARN, "IOCTL_BUSDOG_PRINT_DEVICES is depreciated\n");
 
             WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
 
@@ -791,7 +786,7 @@ Return Value:
 
             if (!NT_SUCCESS(status)) 
             {
-                BusDogPrint("WdfRequestRetrieveOutputBuffer failed - 0x%x\n",
+                BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfRequestRetrieveOutputBuffer failed - 0x%x\n",
                             status);
 
                 WdfRequestComplete(Request, status);
@@ -826,7 +821,7 @@ Return Value:
 
                     context->FilterEnabled = filterEnabledBuffer->FilterEnabled;
 
-                    BusDogPrint("%d - FilterEnabled: %d\n", filterEnabledBuffer->DeviceId, context->FilterEnabled);
+                    BusDogPrint(BUSDOG_DEBUG_INFO, "%d - FilterEnabled: %d\n", filterEnabledBuffer->DeviceId, context->FilterEnabled);
 
                     foundDevice = TRUE;
 
@@ -837,7 +832,7 @@ Return Value:
 
             if (!foundDevice)
             {
-                BusDogPrint("Error DeviceId (%d) is not valid\n", filterEnabledBuffer->DeviceId);
+                BusDogPrint(BUSDOG_DEBUG_WARN, "Error DeviceId (%d) is not valid\n", filterEnabledBuffer->DeviceId);
 
                 status = STATUS_NO_SUCH_DEVICE;
             }
@@ -854,7 +849,7 @@ Return Value:
             if (InputBufferLength) 
             {
 
-                BusDogPrint("Sorry buddy...No input buffers allowed\n");
+                BusDogPrint(BUSDOG_DEBUG_WARN, "Sorry buddy...No input buffers allowed\n");
 
                 WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
 
@@ -862,8 +857,7 @@ Return Value:
 
             }
 
-            BusDogPrint("get device fifo\n");
-
+            BusDogPrint(BUSDOG_DEBUG_INFO, "get device list\n");
 
             //
             // Get the output buffer...
@@ -875,7 +869,7 @@ Return Value:
 
             if (!NT_SUCCESS(status)) 
             {
-                BusDogPrint("WdfRequestRetrieveOutputBuffer failed - 0x%x\n",
+                BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfRequestRetrieveOutputBuffer failed - 0x%x\n",
                             status);
 
                 WdfRequestComplete(Request, status);
@@ -917,6 +911,92 @@ Return Value:
 
             return;
 
+        case IOCTL_BUSDOG_GET_DEBUG_LEVEL:
+
+            if (InputBufferLength) 
+            {
+
+                BusDogPrint(BUSDOG_DEBUG_WARN, "Sorry buddy...No input buffers allowed\n");
+
+                WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
+
+                return;
+
+            }
+
+            BusDogPrint(BUSDOG_DEBUG_INFO, "get debug level\n");
+
+            //
+            // Get the output buffer...
+            //
+            status = WdfRequestRetrieveOutputBuffer(Request,
+                    sizeof(BUSDOG_DEBUG_LEVEL),
+                    &outputBuffer,
+                    &realLength);
+
+            if (!NT_SUCCESS(status)) 
+            {
+                BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfRequestRetrieveOutputBuffer failed - 0x%x\n",
+                            status);
+
+                WdfRequestComplete(Request, status);
+
+                return;
+            }
+
+            //
+            // Fill buffer debug level info
+            //
+            
+            ((PBUSDOG_DEBUG_LEVEL)outputBuffer)->DebugLevel = BusDogDebugLevel;
+            
+            //
+            // Yes! Return to the user, telling them how many bytes
+            //  we copied....
+            //
+            WdfRequestCompleteWithInformation(Request, 
+                    STATUS_SUCCESS,
+                    realLength);
+
+            return;
+
+        case IOCTL_BUSDOG_SET_DEBUG_LEVEL:
+
+            if (!InputBufferLength)
+            {
+                WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
+
+                return;
+            }
+
+            //
+            // Get the input buffer...
+            //
+            status = WdfRequestRetrieveInputBuffer(Request,
+                    sizeof(BUSDOG_DEBUG_LEVEL),
+                    (PVOID *)&debugLevelBuffer,
+                    &realLength);
+
+            if (!NT_SUCCESS(status)) 
+            {
+                BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfRequestRetrieveOutputBuffer failed - 0x%x\n",
+                            status);
+
+                WdfRequestComplete(Request, status);
+
+                return;
+            }
+
+            //
+            // Set debug level
+            //
+
+            BusDogDebugLevel = debugLevelBuffer->DebugLevel;
+
+            WdfRequestCompleteWithInformation(Request, status, realLength);
+
+            return;
+
         default:
 
             break;
@@ -942,24 +1022,24 @@ BusDogWdmDeviceReadWrite (
 
         if (stack->MajorFunction == IRP_MJ_READ)
         {
-            BusDogPrint("%2d - IRP_MJ_READ, Length: %d\n", context->DeviceId, stack->Parameters.Read.Length);
+            BusDogPrint(BUSDOG_DEBUG_INFO, "%2d - IRP_MJ_READ, Length: %d\n", context->DeviceId, stack->Parameters.Read.Length);
         }
         else if (stack->MajorFunction == IRP_MJ_WRITE)
         {
-            BusDogPrint("%2d - IRP_MJ_WRITE, Length: %d\n", context->DeviceId, stack->Parameters.Write.Length);
+            BusDogPrint(BUSDOG_DEBUG_INFO, "%2d - IRP_MJ_WRITE, Length: %d\n", context->DeviceId, stack->Parameters.Write.Length);
         }
 
         if (FlagOn(stack->DeviceObject->Flags, DO_BUFFERED_IO)) 
         {
             //buffer at Irp->AssociatedIrp.SystemBuffer
-            BusDogPrint("         DO_BUFFERED_IO - Irp->AssociatedIrp.SystemBuffer: %d\n", Irp->AssociatedIrp.SystemBuffer);
+            BusDogPrint(BUSDOG_DEBUG_INFO, "         DO_BUFFERED_IO - Irp->AssociatedIrp.SystemBuffer: %d\n", Irp->AssociatedIrp.SystemBuffer);
         }
         else if (FlagOn(stack->DeviceObject->Flags, DO_DIRECT_IO)) 
         {
             PVOID buffer;
 
             // buffer at Irp->MdlAddress
-            BusDogPrint("         DO_DIRECT_IO - Irp->MdlAddress: %d\n", Irp->MdlAddress);
+            BusDogPrint(BUSDOG_DEBUG_INFO, "         DO_DIRECT_IO - Irp->MdlAddress: %d\n", Irp->MdlAddress);
 
             //         
             // Map the physical pages described by the MDL into system space. 
@@ -980,7 +1060,7 @@ BusDogWdmDeviceReadWrite (
                 // 
                 // Now you can safely read the data from the buffer.
                 //
-                BusDogPrint("         Data: ");
+                BusDogPrint(BUSDOG_DEBUG_INFO, "         Data: ");
                 PrintChars(buffer, MmGetMdlByteCount(Irp->MdlAddress));
             }
 
@@ -988,7 +1068,7 @@ BusDogWdmDeviceReadWrite (
         else 
         {
             // buffer at Irp->UserBuffer 
-            BusDogPrint("         Neither - Irp->UserBuffer: %d\n", Irp->UserBuffer);
+            BusDogPrint(BUSDOG_DEBUG_INFO, "         Neither - Irp->UserBuffer: %d\n", Irp->UserBuffer);
         }
     }
 
@@ -1034,7 +1114,7 @@ BusDogIoRead(
                 //
                 // Print the info to the debugger
                 //
-                BusDogPrint("BusDogIoRead       %2d: Length-0x%x Data-", context->DeviceId, Length);
+                BusDogPrint(BUSDOG_DEBUG_INFO, "BusDogIoRead       %2d: Length-0x%x Data-", context->DeviceId, Length);
                 PrintChars(dataBuffer, Length);
 
                 BusDogAddTraceToFifo(device, context->DeviceId, BusDogReadRequest, dataBuffer, Length);
@@ -1047,7 +1127,7 @@ BusDogIoRead(
                 //  and let the next device decide what to do with 
                 //  this.
                 //
-                BusDogPrint("RetrieveOutputBuffer failed - 0x%x\n", 
+                BusDogPrint(BUSDOG_DEBUG_INFO, "RetrieveOutputBuffer failed - 0x%x\n", 
                             status);
             }
 
@@ -1081,7 +1161,7 @@ BusDogReadComplete(
         //
         // And print the information to the debugger
         //
-        BusDogPrint("BusDogReadComplete %2d: Status-0x%x; Information-0x%x\n",
+        BusDogPrint(BUSDOG_DEBUG_INFO, "BusDogReadComplete %2d: Status-0x%x; Information-0x%x\n",
                     context->DeviceId,
                     Params->IoStatus.Status, 
                     Params->IoStatus.Information);
@@ -1131,7 +1211,7 @@ BusDogIoWrite(
                 //
                 // Print the info to the debugger
                 //
-                BusDogPrint("BusDogIoWrite      %2d: Length-0x%x Data-", context->DeviceId, Length);
+                BusDogPrint(BUSDOG_DEBUG_INFO, "BusDogIoWrite      %2d: Length-0x%x Data-", context->DeviceId, Length);
                 PrintChars(dataBuffer, Length);
 
                 BusDogAddTraceToFifo(device, context->DeviceId, BusDogWriteRequest, dataBuffer, Length);
@@ -1143,7 +1223,7 @@ BusDogIoWrite(
                 //  and let the next device decide what to do with
                 //  this.
                 //
-                BusDogPrint("RetrieveInputBuffer failed - 0x%x\n",
+                BusDogPrint(BUSDOG_DEBUG_ERROR, "RetrieveInputBuffer failed - 0x%x\n",
                             status);
             }
 
@@ -1198,7 +1278,7 @@ BusDogForwardRequest(
         // Oops! Something bad happened, complete the request
         //
         status = WdfRequestGetStatus(Request);
-        BusDogPrint("WdfRequestSend failed - 0x%x\n", status);
+        BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfRequestSend failed - 0x%x\n", status);
         WdfRequestComplete(Request, status);
     }
     return;
@@ -1244,7 +1324,7 @@ BusDogForwardRequestWithCompletion(
         // Oops! Something bad happened, complete the request
         //
         status = WdfRequestGetStatus(Request);
-        BusDogPrint("WdfRequestSend failed - 0x%x\n", status);
+        BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfRequestSend failed - 0x%x\n", status);
         WdfRequestComplete(Request, status);
     }
     return;
@@ -1329,11 +1409,11 @@ BusDogProcessInternalDeviceControl(
     {
         if (bCompletion)
         {
-            BusDogPrint("BusDogIoInternalDeviceControlComplete - Id: %d, IOCTL: %d\n",  Context->DeviceId, IoControlCode);
+            BusDogPrint(BUSDOG_DEBUG_INFO, "BusDogIoInternalDeviceControlComplete - Id: %d, IOCTL: %d\n",  Context->DeviceId, IoControlCode);
         }
         else
         {
-            BusDogPrint("BusDogIoInternalDeviceControl - Id: %d, IOCTL: %d\n",  Context->DeviceId, IoControlCode);
+            BusDogPrint(BUSDOG_DEBUG_INFO, "BusDogIoInternalDeviceControl - Id: %d, IOCTL: %d\n",  Context->DeviceId, IoControlCode);
         }
 
         switch (IoControlCode)
@@ -1342,7 +1422,7 @@ BusDogProcessInternalDeviceControl(
             {
                 PURB pUrb;
 
-                BusDogPrint("    IOCTL_INTERNAL_USB_SUBMIT_URB\n");
+                BusDogPrint(BUSDOG_DEBUG_INFO, "    IOCTL_INTERNAL_USB_SUBMIT_URB\n");
                 
                 pUrb = (PURB) IoGetCurrentIrpStackLocation(WdfRequestWdmGetIrp(Request))->Parameters.Others.Argument1;
 
@@ -1351,13 +1431,13 @@ BusDogProcessInternalDeviceControl(
                     struct _URB_BULK_OR_INTERRUPT_TRANSFER* pTransfer = (struct _URB_BULK_OR_INTERRUPT_TRANSFER*)pUrb;
                     *bRead = (BOOLEAN)(pTransfer->TransferFlags & USBD_TRANSFER_DIRECTION_IN);
                     
-                    BusDogPrint("        URB_FUNCTION_BULK_OR_INTERRUPT_TRANSFER\n");
-                    BusDogPrint("        TransferBufferLength: %d\n", pTransfer->TransferBufferLength);
-                    BusDogPrint("        R/W: %s, MDL: %d\n", *bRead ? "read" : "write", pTransfer->TransferBufferMDL != NULL);
+                    BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_BULK_OR_INTERRUPT_TRANSFER\n");
+                    BusDogPrint(BUSDOG_DEBUG_INFO, "        TransferBufferLength: %d\n", pTransfer->TransferBufferLength);
+                    BusDogPrint(BUSDOG_DEBUG_INFO, "        R/W: %s, MDL: %d\n", *bRead ? "read" : "write", pTransfer->TransferBufferMDL != NULL);
 
                     if (bCompletion && *bRead || !bCompletion && !*bRead)
                     {
-                        BusDogPrint("        Data: ");
+                        BusDogPrint(BUSDOG_DEBUG_INFO, "        Data: ");
 
                         if (pTransfer->TransferBuffer != NULL)
                         {
@@ -1383,7 +1463,7 @@ BusDogProcessInternalDeviceControl(
                         }
                         else
                         {
-                            BusDogPrint("Buffer error!\n");
+                            BusDogPrint(BUSDOG_DEBUG_ERROR, "Buffer error!\n");
                         }
                     }
                 }

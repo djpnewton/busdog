@@ -32,7 +32,7 @@ BusDogTraceFifoInit(
                                 &BusDogTraceFifoLock);
     if (!NT_SUCCESS(status))
     {
-        BusDogPrint("WdfWaitLockCreate failed with status 0x%x\n", status);
+        BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfWaitLockCreate failed with status 0x%x\n", status);
     }
 
     return status;
@@ -107,7 +107,7 @@ __BusDogCreateTrace(
 
         if (pTraceItem == NULL)
         {
-            BusDogPrint("ExAllocatePoolWithTag failed\n");
+            BusDogPrint(BUSDOG_DEBUG_ERROR, "ExAllocatePoolWithTag failed\n");
 
             return NULL;
         }
@@ -169,7 +169,7 @@ BusDogAddTraceToFifo(
 
     if (BusDogTraceFifo.WriteIndex == BusDogTraceFifo.ReadIndex)
     {
-        BusDogPrint("BusDog - On noes! We have overflow\n");
+        BusDogPrint(BUSDOG_DEBUG_ERROR, "On noes! We have overflow\n");
     }
 
     WdfSpinLockRelease(BusDogTraceFifoLock);
@@ -192,7 +192,7 @@ __BusDogRetrieveTrace(
 
         if (pTraceItem == NULL)
         {
-            BusDogPrint("BusDog - On noes! invalid trace\n");
+            BusDogPrint(BUSDOG_DEBUG_ERROR, "On noes! invalid trace\n");
 
             return NULL;
         }
@@ -225,7 +225,7 @@ __BusDogRetrieveTraceSize(
 
     if (pTraceItem == NULL)
     {
-        BusDogPrint("BusDog - On noes! invalid trace\n");
+        BusDogPrint(BUSDOG_DEBUG_ERROR, "On noes! invalid trace\n");
 
         return 0;
     }
@@ -255,7 +255,7 @@ BusDogFillBufferWithTraces(
             
         if (TraceSize > BufferSize - BytesWritten)
         {
-            BusDogPrint("BusDog - No room for next trace\n");
+            BusDogPrint(BUSDOG_DEBUG_WARN, "No room for next trace\n");
 
             break;
         }
@@ -264,12 +264,12 @@ BusDogFillBufferWithTraces(
 
         if (pTrace == NULL)
         {
-            BusDogPrint("BusDog - No more traces\n");
+            BusDogPrint(BUSDOG_DEBUG_INFO, "No more traces\n");
 
             break;
         }
 
-        BusDogPrint("BusDog - Got trace %d\n", pTrace);
+        BusDogPrint(BUSDOG_DEBUG_INFO, "Got trace %d\n", pTrace);
 
         RtlCopyMemory((PCHAR)Buffer + BytesWritten,
                 pTrace,
@@ -277,7 +277,7 @@ BusDogFillBufferWithTraces(
 
         BytesWritten += TraceSize;
 
-        BusDogPrint("     Bytes written %d\n", BytesWritten);
+        BusDogPrint(BUSDOG_DEBUG_INFO, "     Bytes written %d\n", BytesWritten);
     }
 
     WdfSpinLockRelease(BusDogTraceFifoLock);

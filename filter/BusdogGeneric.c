@@ -113,7 +113,7 @@ BusDogUpdateDeviceIds(
 
             context->DeviceId = newDevId;
 
-            BusDogPrint("New DeviceId: %2d\n", newDevId);
+            BusDogPrint(BUSDOG_DEBUG_INFO, "New DeviceId: %2d\n", newDevId);
         }
     }
 
@@ -189,7 +189,7 @@ BusDogFillBufferWithDeviceIds(
 
         if (!NT_SUCCESS(status)) 
         {
-            BusDogPrint("WdfDeviceAllocAndQueryProperty failed - 0x%x\n",
+            BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfDeviceAllocAndQueryProperty failed - 0x%x\n",
                         status);
 
             continue;
@@ -199,7 +199,7 @@ BusDogFillBufferWithDeviceIds(
 
         if (pdoNameBuffer == NULL) 
         {   
-            BusDogPrint("WdfMemoryGetBuffer failed\n");
+            BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfMemoryGetBuffer failed\n");
 
             continue;   
         }   
@@ -211,7 +211,7 @@ BusDogFillBufferWithDeviceIds(
         // Print item
         //
 
-        BusDogPrint("%2d - Enabled: %d, PDO Name: %wZ\n", context->DeviceId, context->FilterEnabled, &pdoName);
+        BusDogPrint(BUSDOG_DEBUG_INFO, "%2d - Enabled: %d, PDO Name: %wZ\n", context->DeviceId, context->FilterEnabled, &pdoName);
 
         //
         // Copy Item to user buffer
@@ -223,7 +223,7 @@ BusDogFillBufferWithDeviceIds(
         {
             Result = FALSE;
 
-            BusDogPrint("BusDog - No room for device id\n");
+            BusDogPrint(BUSDOG_DEBUG_WARN, "No room for device id\n");
         }
         else
         {

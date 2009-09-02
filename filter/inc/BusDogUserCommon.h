@@ -41,6 +41,16 @@
                                          METHOD_BUFFERED,    \
                                          FILE_READ_ACCESS)   \
 
+#define IOCTL_BUSDOG_GET_DEBUG_LEVEL CTL_CODE(FILE_DEVICE_BUSDOG,\
+                                         2055,               \
+                                         METHOD_BUFFERED,    \
+                                         FILE_READ_ACCESS)   \
+
+#define IOCTL_BUSDOG_SET_DEBUG_LEVEL CTL_CODE(FILE_DEVICE_BUSDOG,\
+                                         2056,               \
+                                         METHOD_BUFFERED,    \
+                                         FILE_WRITE_ACCESS)  \
+
 //
 // struct definition for IOCTL_BUSDOG_SET_DEVICE_FILTER_ENABLED
 //
@@ -111,6 +121,22 @@ typedef struct
     size_t PhysicalDeviceObjectNameSize;
 
 } BUSDOG_DEVICE_ID, *PBUSDOG_DEVICE_ID; // unicode string follows this structure in memory
+
+//
+// struct definition for IOCTL_BUSDOG_GET_DEBUG_LEVEL/IOCTL_BUSDOG_SET_DEBUG_LEVEL
+//
+
+typedef struct
+{
+
+    DWORD DebugLevel;
+
+} BUSDOG_DEBUG_LEVEL, *PBUSDOG_DEBUG_LEVEL;
+
+#define BUSDOG_DEBUG_INFO  3
+#define BUSDOG_DEBUG_WARN  2
+#define BUSDOG_DEBUG_ERROR 1
+#define BUSDOG_DEBUG_NONE  0
 
 #endif
 

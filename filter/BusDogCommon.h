@@ -4,11 +4,11 @@
 #include <Usbioctl.h>
 #include <usb.h>
 
-#include "BusDogData.h"
-
 #define NT_INCLUDED
 #include "WinDef.h"
+
 #include "BusDogUserCommon.h"
+#include "BusDogData.h"
 
 #if !defined(_BUSDOG_COMMON_H_)
 #define _BUSDOG_COMMON_H_
@@ -238,12 +238,15 @@ BusDogFillBufferWithTraces(
 )
 
 #if DBG
-#define BusDogPrint(fmt, ...) {        \
-    DbgPrint(DRIVERNAME);              \
-    DbgPrint(fmt, __VA_ARGS__);        \
+#define BusDogPrint(dbglevel, fmt, ...) {  \
+    if (dbglevel >= BusDogDebugLevel)      \
+    {                                      \
+        DbgPrint(DRIVERNAME);              \
+        DbgPrint(fmt, __VA_ARGS__);        \
+    }                                      \
 }
 #else
-#define BusDogPrint(fmt, ...) {        \
+#define BusDogPrint(dbglevel, fmt, ...) {  \
 }
 #endif
 
