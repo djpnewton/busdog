@@ -32,7 +32,7 @@ BusDogTraceFifoInit(
                                 &BusDogTraceFifoLock);
     if (!NT_SUCCESS(status))
     {
-        KdPrint( ("WdfWaitLockCreate failed with status 0x%x\n", status));
+        BusDogPrint("WdfWaitLockCreate failed with status 0x%x\n", status);
     }
 
     return status;
@@ -107,7 +107,7 @@ __BusDogCreateTrace(
 
         if (pTraceItem == NULL)
         {
-            KdPrint(("ExAllocatePoolWithTag failed\n"));
+            BusDogPrint("ExAllocatePoolWithTag failed\n");
 
             return NULL;
         }
@@ -169,7 +169,7 @@ BusDogAddTraceToFifo(
 
     if (BusDogTraceFifo.WriteIndex == BusDogTraceFifo.ReadIndex)
     {
-        KdPrint(("BusDog - On noes! We have overflow\n"));
+        BusDogPrint("BusDog - On noes! We have overflow\n");
     }
 
     WdfSpinLockRelease(BusDogTraceFifoLock);
@@ -192,7 +192,7 @@ __BusDogRetrieveTrace(
 
         if (pTraceItem == NULL)
         {
-            KdPrint(("BusDog - On noes! invalid trace\n"));
+            BusDogPrint("BusDog - On noes! invalid trace\n");
 
             return NULL;
         }
@@ -225,7 +225,7 @@ __BusDogRetrieveTraceSize(
 
     if (pTraceItem == NULL)
     {
-        KdPrint(("BusDog - On noes! invalid trace\n"));
+        BusDogPrint("BusDog - On noes! invalid trace\n");
 
         return 0;
     }
@@ -255,7 +255,7 @@ BusDogFillBufferWithTraces(
             
         if (TraceSize > BufferSize - BytesWritten)
         {
-            KdPrint(("BusDog - No room for next trace\n"));
+            BusDogPrint("BusDog - No room for next trace\n");
 
             break;
         }
@@ -264,12 +264,12 @@ BusDogFillBufferWithTraces(
 
         if (pTrace == NULL)
         {
-            KdPrint(("BusDog - No more traces\n"));
+            BusDogPrint("BusDog - No more traces\n");
 
             break;
         }
 
-        KdPrint(("BusDog - Got trace %d\n", pTrace));
+        BusDogPrint("BusDog - Got trace %d\n", pTrace);
 
         RtlCopyMemory((PCHAR)Buffer + BytesWritten,
                 pTrace,
@@ -277,7 +277,7 @@ BusDogFillBufferWithTraces(
 
         BytesWritten += TraceSize;
 
-        KdPrint(("     Bytes written %d\n", BytesWritten));
+        BusDogPrint("     Bytes written %d\n", BytesWritten);
     }
 
     WdfSpinLockRelease(BusDogTraceFifoLock);

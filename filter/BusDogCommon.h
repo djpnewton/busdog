@@ -237,4 +237,14 @@ BusDogFillBufferWithTraces(
     (((F) & (SF)))     \
 )
 
+#if DBG
+#define BusDogPrint(fmt, ...) {        \
+    DbgPrint(DRIVERNAME);              \
+    DbgPrint(fmt, __VA_ARGS__);        \
+}
+#else
+#define BusDogPrint(fmt, ...) {        \
+}
+#endif
+
 #endif
