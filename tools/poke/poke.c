@@ -24,7 +24,9 @@ typedef struct _IO_STATUS_BLOCK
 
 #define USAGE_STRING "Usage: poke {-getlist|-start|-stop}\n"             \
                      "       poke -setenabled ${DEVICEID} TRUE|FALSE\n"  \
-                     "       poke -getbuffer\n\n"                        \
+                     "       poke -getbuffer\n"                          \
+                     "       poke -setdebug ${DEBUGLEVEL}\n"             \
+                     "       poke -getdebug\n\n"                         \
                      "  -getlist -- Get list of busdog devices\n"        \
                      "  -start -- Send the \"start filtering\" "         \
                      "command\n"                                         \
@@ -32,7 +34,9 @@ typedef struct _IO_STATUS_BLOCK
                      "command\n"                                         \
                      "  -setenabled  --  Set the device filter "         \
                      "specified by the Id to enabled or disabled\n"      \
-                     "  -getbuffer   --  Get the current filter buffer"
+                     "  -getbuffer  --  Get the current filter buffer\n" \
+                     "  -setdebug  --  Set the debugging level\n"        \
+                     "  -getdebug  --  Get the current debugging level\n"
 
 void printChars(char* traceBuf, DWORD bufSize)
 {
@@ -95,6 +99,30 @@ void __cdecl main(int argc, CHAR **argv)
             ioctl = IOCTL_BUSDOG_GET_BUFFER;
             outBufSize = 1024;
             outBuf = malloc(outBufSize);
+        } 
+        else if (strcmp(argv[1], "-getdebug") == 0) 
+        {
+            ioctl = IOCTL_BUSDOG_GET_DEBUG_LEVEL;
+            outBufSize = sizeof(BUSDOG_DEBUG_LEVEL);
+            outBuf = malloc(outBufSize);
+        } 
+        else 
+        {
+            printf(USAGE_STRING);
+            return;
+        }
+    }
+    else if (argc ==3)
+    {
+        if (strcmp(argv[1], "-setdebug") == 0) 
+        {
+            BUSDOG_DEBUG_LEVEL dbgLevel;
+
+            ioctl = IOCTL_BUSDOG_SET_DEBUG_LEVEL;
+            dbgLevel.DebugLevel = atoi(argv[2]);
+            inBufSize = sizeof(BUSDOG_DEBUG_LEVEL);
+            inBuf = malloc(inBufSize);
+            memcpy(inBuf, &dbgLevel, sizeof(BUSDOG_DEBUG_LEVEL));
         } 
         else 
         {
@@ -221,6 +249,15 @@ void __cdecl main(int argc, CHAR **argv)
                         break;
 
                     index += pDevId->PhysicalDeviceObjectNameSize;
+                }
+            }
+            case IOCTL_BUSDOG_GET_DEBUG_LEVEL:
+            {
+                PBUSDOG_DEBUG_LEVEL pDbgLevel;
+                if (bytesRet == sizeof(BUSDOG_DEBUG_LEVEL))
+                {
+                    pDbgLevel = (PBUSDOG_DEBUG_LEVEL)outBuf;
+                    printf("Current debug level is: %d\n", pDbgLevel->DebugLevel);
                 }
             }
         }

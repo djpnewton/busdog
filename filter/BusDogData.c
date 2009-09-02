@@ -8,7 +8,7 @@ BOOLEAN         BusDogFiltering = FALSE;
 //
 // BusDogDebugLevel controls debug output
 //
-DWORD           BusDogDebugLevel = BUSDOG_DEBUG_INFO;
+DWORD           BusDogDebugLevel = BUSDOG_DEBUG_WARN;
 
 
 //

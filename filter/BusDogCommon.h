@@ -239,7 +239,7 @@ BusDogFillBufferWithTraces(
 
 #if DBG
 #define BusDogPrint(dbglevel, fmt, ...) {  \
-    if (dbglevel >= BusDogDebugLevel)      \
+    if (BusDogDebugLevel >= dbglevel)      \
     {                                      \
         DbgPrint(DRIVERNAME);              \
         DbgPrint(fmt, __VA_ARGS__);        \

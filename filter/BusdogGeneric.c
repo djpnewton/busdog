@@ -6,23 +6,26 @@ PrintChars(
     __in ULONG CountChars
     )
 {
-    if (CountChars) {
+    if (BusDogDebugLevel >= BUSDOG_DEBUG_INFO)
+    {
+        if (CountChars) {
 
-        while (CountChars--) {
+            while (CountChars--) {
 
-            if (*BufferAddress > 31
-                 && *BufferAddress != 127) {
+                if (*BufferAddress > 31
+                        && *BufferAddress != 127) {
 
-                KdPrint (( "%c", *BufferAddress) );
+                    KdPrint (( "%c", *BufferAddress) );
 
-            } else {
+                } else {
 
-                KdPrint(( ".") );
+                    KdPrint(( ".") );
 
+                }
+                BufferAddress++;
             }
-            BufferAddress++;
+            KdPrint (("\n"));
         }
-        KdPrint (("\n"));
     }
     return;
 }
