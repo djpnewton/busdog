@@ -13,6 +13,10 @@ echo +++++++++++++++++++++++++++++++++
 :: copy driver to busdog gui directory
 xcopy /Y filter\objfre_wxp_x86\i386\busdog.sys gui\driverRes\bin
 if errorlevel 1 goto error
+xcopy /Y filter\objfre_wxp_x86\i386\busdog.inf gui\driverRes\bin
+if errorlevel 1 goto error
+xcopy /Y %BASEDIR%\redist\wdf\x86\wdfcoinstaller?????.dll gui\driverRes\bin
+if errorlevel 1 goto error
 
 ::visual studio environment
 call "C:\Program Files\Microsoft Visual Studio 9.0\VC\vcvarsall.bat" x86

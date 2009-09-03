@@ -72,6 +72,32 @@ AddReg = clasfilt_EventLog_AddReg
 HKR,,EventMessageFile, %REG_EXPAND_SZ%,"%%SystemRoot%%\System32\IoLogMsg.dll;%%SystemRoot%%\System32\drivers\busdog.sys"
 HKR,,TypesSupported, %REG_DWORD%, 7
 
+;================================================================
+;--- WDF Coinstaller installation ------
+;
+
+[DestinationDirs]
+CoInstaller_CopyFiles = 11
+
+[DefaultInstall.NT.CoInstallers]
+AddReg=CoInstaller_AddReg
+CopyFiles=CoInstaller_CopyFiles
+
+[CoInstaller_AddReg]
+HKR,,CoInstallers32,0x00010000,"WdfCoinstaller$KMDFCOINSTALLERVERSION$.dll,WdfCoInstaller"
+
+[CoInstaller_CopyFiles]
+WdfCoinstaller$KMDFCOINSTALLERVERSION$.dll,,,2
+
+[SourceDisksFiles]
+WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll=99
+
+[DefaultInstall.NT.Wdf]
+KmdfLibraryVersion = $KMDFVERSION$
+
+;================================================================
+;--- Misc ------
+;
 
 [Strings]
 ;

@@ -30,7 +30,8 @@
             Sources="@(Compile)"
             References="@(Reference)"
             Resources="@(Resources)"
-            OutputAssembly="$(OutputPath)$(AssemblyName).exe">
+            OutputAssembly="$(OutputPath)$(AssemblyName).exe"
+            TargetType="$(OutputType)">
         </Csc>
     </Target>
 
