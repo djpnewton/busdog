@@ -19,7 +19,7 @@
             OutputAssembly="$(OutputPath)$(AssemblyName).exe">
         </Csc>
         <Message Text="Making driver.resx..." />
-        <Exec Command="$(OutputPath)$(AssemblyName).exe $(OutputPath)driver.zip" />
+        <Exec Command="$(OutputPath)$(AssemblyName).exe $(OutputPath)busdog.sys" />
     </Target>
 
     <Target Name="Clean" >
