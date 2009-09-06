@@ -19,7 +19,7 @@
             OutputAssembly="$(OutputPath)$(AssemblyName).exe">
         </Csc>
         <Message Text="Making driver.resx..." />
-        <Exec Command="$(OutputPath)$(AssemblyName).exe $(OutputPath)busdog.sys $(OutputPath)busdog.inf $(OutputPath)WdfCoInstaller01009.dll" />
+        <Exec Command="$(OutputPath)$(AssemblyName).exe $(OutputPath)busdog.sys $(OutputPath)busdog.inf $(OutputPath)WdfCoInstaller01009.dll $(OutputPath)dpinst.exe" />
     </Target>
 
     <Target Name="Clean" >

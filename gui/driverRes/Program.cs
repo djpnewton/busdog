@@ -41,6 +41,7 @@ namespace driverRes
                 }
             }
 
+            rsxw.Generate();
             rsxw.Close();
 
             return 0;

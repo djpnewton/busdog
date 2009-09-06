@@ -17,7 +17,7 @@
         <MakeDir Directories="$(OutputPath)" Condition="!Exists('$(OutputPath)')" />
         <GenerateResource
             Sources="MainForm.resx; driver.resx"
-            OutputResources="$(OutputPath)busdog.MainForm.resources; $(OutputPath)Driver.resources">
+            OutputResources="$(OutputPath)busdog.MainForm.resources; $(OutputPath)busdog.Driver.resources">
             <Output TaskParameter="OutputResources"
                 ItemName="Resources"/>
         </GenerateResource>

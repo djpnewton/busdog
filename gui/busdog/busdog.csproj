@@ -50,6 +50,7 @@
   <ItemGroup>
     <Compile Include="DeviceManagement.cs" />
     <Compile Include="DeviceManagementDeclarations.cs" />
+    <Compile Include="DriverManagement.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>

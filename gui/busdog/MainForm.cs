@@ -19,6 +19,30 @@ namespace busdog
         {
             InitializeComponent();
 
+            bool drvInstalled;
+            if (DriverManagement.IsDriverInstalled(out drvInstalled))
+            {
+                if (!drvInstalled)
+                {
+                    if (MessageBox.Show(
+                        "BusDog Filter Driver is not installed. Do you want to install it now?",
+                        "Driver Not Installed",
+                        MessageBoxButtons.YesNo) == DialogResult.Yes)
+                    {
+                        bool needRestart;
+                        if (DriverManagement.InstallDriver(out needRestart))
+                        {
+                            if (needRestart)
+                                MessageBox.Show("BusDog Filter Driver installed! Restart required to complete.",
+                                    "Driver Installed");
+                            else
+                                MessageBox.Show("BusDog Filter Driver installed! You might want to restart or unplug/replug the usb device you intend to filter.",
+                                    "Driver Installed");
+                        }
+                    }
+                }
+            }
+
             devManage.RegisterForDeviceNotifications(Handle, ref devNotificationsHandle);
 
             EnumFilterDevices();

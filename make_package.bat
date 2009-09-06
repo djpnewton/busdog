@@ -25,6 +25,8 @@ xcopy /Y filter\obj%BUILD_ALT_DIR%\%other_arch_spec%\busdog.inf gui\driverRes\bi
 if errorlevel 1 goto error
 xcopy /Y %BASEDIR%\redist\wdf\%_BUILDARCH%\wdfcoinstaller?????.dll gui\driverRes\bin
 if errorlevel 1 goto error
+xcopy /Y %BASEDIR%\redist\DIFx\dpinst\MultiLin\%_BUILDARCH%\dpinst.exe gui\driverRes\bin
+if errorlevel 1 goto error
 
 ::visual studio environment
 call "C:\Program Files\Microsoft Visual Studio 9.0\VC\vcvarsall.bat" x86
