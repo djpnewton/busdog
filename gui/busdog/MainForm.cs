@@ -36,7 +36,7 @@ namespace busdog
                                 MessageBox.Show("BusDog Filter Driver installed! Restart required to complete.",
                                     "Driver Installed");
                             else
-                                MessageBox.Show("BusDog Filter Driver installed! You might want to restart or unplug/replug the usb device you intend to filter.",
+                                MessageBox.Show("BusDog Filter Driver installed!",
                                     "Driver Installed");
                         }
                     }
