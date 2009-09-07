@@ -19,29 +19,7 @@ namespace busdog
         {
             InitializeComponent();
 
-            bool drvInstalled;
-            if (DriverManagement.IsDriverInstalled(out drvInstalled))
-            {
-                if (!drvInstalled)
-                {
-                    if (MessageBox.Show(
-                        "BusDog Filter Driver is not installed. Do you want to install it now?",
-                        "Driver Not Installed",
-                        MessageBoxButtons.YesNo) == DialogResult.Yes)
-                    {
-                        bool needRestart;
-                        if (DriverManagement.InstallDriver(out needRestart))
-                        {
-                            if (needRestart)
-                                MessageBox.Show("BusDog Filter Driver installed! Restart required to complete.",
-                                    "Driver Installed");
-                            else
-                                MessageBox.Show("BusDog Filter Driver installed!",
-                                    "Driver Installed");
-                        }
-                    }
-                }
-            }
+            CheckDriverInstallation();
 
             devManage.RegisterForDeviceNotifications(Handle, ref devNotificationsHandle);
 
@@ -169,6 +147,66 @@ namespace busdog
         {
             lvTraces.Items.Clear();
             prevTrace = new FilterTrace();
+        }
+
+        private void CheckDriverInstallation()
+        {
+            bool drvInstalled;
+            if (DriverManagement.IsDriverInstalled(out drvInstalled))
+            {
+                if (!drvInstalled)
+                {
+                    if (MessageBox.Show(
+                        "BusDog Filter Driver is not installed. Do you want to install it now?",
+                        "Driver Not Installed",
+                        MessageBoxButtons.YesNo) == DialogResult.Yes)
+                    {
+                        InstallDriver();
+                    }
+                }
+            }
+        }
+
+        private void InstallDriver()
+        {
+            bool needRestart;
+            if (DriverManagement.InstallDriver(out needRestart))
+            {
+                if (needRestart)
+                    MessageBox.Show("BusDog Filter Driver installed! Restart required to complete.",
+                        "Driver Installed");
+                else
+                    MessageBox.Show("BusDog Filter Driver installed!",
+                        "Driver Installed");
+            }
+            else
+                MessageBox.Show("BusDog Filter Driver installation failed", "Driver Installation Failed");
+        }
+
+        private void UninstallDriver()
+        {
+            bool needRestart;
+            if (DriverManagement.UninstallDriver(out needRestart))
+            {
+                if (needRestart)
+                    MessageBox.Show("BusDog Filter Driver uninstalled! Restart required to complete.",
+                        "Driver Installed");
+                else
+                    MessageBox.Show("BusDog Filter Driver uninstalled!",
+                        "Driver Uninstalled");
+            }
+            else
+                MessageBox.Show("BusDog Filter Driver uninstallation failed", "Driver Uninstallation Failed");
+        }
+
+        private void btnReinstall_Click(object sender, EventArgs e)
+        {
+            InstallDriver();
+        }
+
+        private void btnUninstall_Click(object sender, EventArgs e)
+        {
+            UninstallDriver();
         }
     }
 }

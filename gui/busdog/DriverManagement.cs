@@ -46,14 +46,48 @@ namespace busdog
         public static bool InstallDriver(out bool needRestart)
         {
             needRestart = false;
-            string tempdir = Path.GetTempPath();
             string mydir;
-            do 
+            if (ExtractDriverFiles(out mydir))
             {
-                mydir = Path.GetRandomFileName();
+                Process p = Process.Start(Path.Combine(mydir, "dpinst.exe"), "/lm");
+                p.WaitForExit();
+                if (Directory.Exists(mydir))
+                    Directory.Delete(mydir, true);
+                if (((p.ExitCode >> 24) & 0x40) == 0x40)
+                    needRestart = true;
+                if (((p.ExitCode >> 24) & 0x80) == 0x80)
+                    return false;
+                return true;
             }
-            while (Directory.Exists(Path.Combine(tempdir, mydir)));
-            mydir = Path.Combine(tempdir, mydir);
+            else
+                return false;
+        }
+
+        public static bool UninstallDriver(out bool needRestart)
+        {
+            needRestart = false;
+            string mydir;
+            if (ExtractDriverFiles(out mydir))
+            {
+                Process p = Process.Start(Path.Combine(mydir, "dpinst.exe"), "/u busdog.inf /d");
+                p.WaitForExit();
+                if (Directory.Exists(mydir))
+                    Directory.Delete(mydir, true);
+                if (((p.ExitCode >> 24) & 0x40) == 0x40)
+                    needRestart = true;
+                if (((p.ExitCode >> 24) & 0x80) == 0x80)
+                    return false;
+                return true;
+            }
+            else
+                return false;
+        }
+
+        private static bool ExtractDriverFiles(out string mydir)
+        {
+            string tempdir = Path.GetTempPath();
+            // This needs to be the same dir for uninstall (dpinst not cool here)
+            mydir = Path.Combine(tempdir, "busdog_temp_busdog_temp");
             try
             {
                 Directory.CreateDirectory(mydir);
@@ -65,18 +99,9 @@ namespace busdog
             catch
             {
                 return false;
-            }            
-            Process p = Process.Start(Path.Combine(mydir, "dpinst.exe"), "/lm");
-            p.WaitForExit();
-            if (Directory.Exists(mydir))
-                Directory.Delete(mydir, true);
-            if (((p.ExitCode >> 24) & 0x40) == 0x40)
-                needRestart = true;
-            if (((p.ExitCode >> 24) & 0x80) == 0x80)
-                return false;
+            }
             return true;
         }
-
         private static void WriteDrverFile(string resname, string dir)
         {
             Assembly ass = Assembly.GetExecutingAssembly();

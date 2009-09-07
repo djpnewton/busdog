@@ -47,6 +47,9 @@
             this.btnClearTraces = new System.Windows.Forms.ToolStripButton();
             this.tmrTrace = new System.Windows.Forms.Timer(this.components);
             this.tmrDeviceChange = new System.Windows.Forms.Timer(this.components);
+            this.tabSetup = new System.Windows.Forms.TabPage();
+            this.btnReinstall = new System.Windows.Forms.Button();
+            this.btnUninstall = new System.Windows.Forms.Button();
             this.tabControl.SuspendLayout();
             this.tabDevices.SuspendLayout();
             this.tabTrace.SuspendLayout();
@@ -54,12 +57,14 @@
             this.tscTrace.TopToolStripPanel.SuspendLayout();
             this.tscTrace.SuspendLayout();
             this.tsTrace.SuspendLayout();
+            this.tabSetup.SuspendLayout();
             this.SuspendLayout();
             // 
             // tabControl
             // 
             this.tabControl.Controls.Add(this.tabDevices);
             this.tabControl.Controls.Add(this.tabTrace);
+            this.tabControl.Controls.Add(this.tabSetup);
             this.tabControl.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tabControl.Location = new System.Drawing.Point(0, 0);
             this.tabControl.Name = "tabControl";
@@ -207,6 +212,37 @@
             this.tmrDeviceChange.Interval = 1000;
             this.tmrDeviceChange.Tick += new System.EventHandler(this.tmrDeviceChange_Tick);
             // 
+            // tabSetup
+            // 
+            this.tabSetup.Controls.Add(this.btnUninstall);
+            this.tabSetup.Controls.Add(this.btnReinstall);
+            this.tabSetup.Location = new System.Drawing.Point(4, 22);
+            this.tabSetup.Name = "tabSetup";
+            this.tabSetup.Size = new System.Drawing.Size(284, 240);
+            this.tabSetup.TabIndex = 2;
+            this.tabSetup.Text = "Setup";
+            this.tabSetup.UseVisualStyleBackColor = true;
+            // 
+            // btnReinstall
+            // 
+            this.btnReinstall.Location = new System.Drawing.Point(8, 3);
+            this.btnReinstall.Name = "btnReinstall";
+            this.btnReinstall.Size = new System.Drawing.Size(102, 23);
+            this.btnReinstall.TabIndex = 0;
+            this.btnReinstall.Text = "Reinstall Driver";
+            this.btnReinstall.UseVisualStyleBackColor = true;
+            this.btnReinstall.Click += new System.EventHandler(this.btnReinstall_Click);
+            // 
+            // btnUninstall
+            // 
+            this.btnUninstall.Location = new System.Drawing.Point(8, 32);
+            this.btnUninstall.Name = "btnUninstall";
+            this.btnUninstall.Size = new System.Drawing.Size(102, 23);
+            this.btnUninstall.TabIndex = 1;
+            this.btnUninstall.Text = "Uninstall Driver";
+            this.btnUninstall.UseVisualStyleBackColor = true;
+            this.btnUninstall.Click += new System.EventHandler(this.btnUninstall_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -225,6 +261,7 @@
             this.tscTrace.PerformLayout();
             this.tsTrace.ResumeLayout(false);
             this.tsTrace.PerformLayout();
+            this.tabSetup.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -248,6 +285,9 @@
         private System.Windows.Forms.ToolStrip tsTrace;
         private System.Windows.Forms.ToolStripButton btnStartTraces;
         private System.Windows.Forms.ToolStripButton btnClearTraces;
+        private System.Windows.Forms.TabPage tabSetup;
+        private System.Windows.Forms.Button btnUninstall;
+        private System.Windows.Forms.Button btnReinstall;
     }
 }
 
