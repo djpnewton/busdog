@@ -52,6 +52,12 @@
                                          FILE_WRITE_ACCESS)  \
 
 //
+// Packing size 1 for all public structs
+//
+
+#pragma pack(1)
+
+//
 // struct definition for IOCTL_BUSDOG_SET_DEVICE_FILTER_ENABLED
 //
 
@@ -137,6 +143,12 @@ typedef struct
 #define BUSDOG_DEBUG_WARN  2
 #define BUSDOG_DEBUG_ERROR 1
 #define BUSDOG_DEBUG_NONE  0
+
+//
+// reset pack pragma
+//
+
+#pragma pack()
 
 #endif
 

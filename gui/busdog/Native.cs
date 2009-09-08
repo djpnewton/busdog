@@ -45,7 +45,7 @@ namespace busdog
         BusDogMaxRequestType
     }
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct BUSDOG_TIMESTAMP
     {
         public int Seconds;
@@ -188,15 +188,16 @@ namespace busdog
                                          METHOD_BUFFERED,    
                                          FILE_READ_ACCESS);
 
-        [StructLayout(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         struct BUSDOG_DEVICE_ID
         {
             public uint DeviceId;
             public byte Enabled;
-            public uint PhysicalDeviceObjectNameSize;
+            /* type is size_t in c */ 
+            public IntPtr PhysicalDeviceObjectNameSize;
         }
 
-        [StructLayout(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         struct BUSDOG_FILTER_ENABLED
         {
             public uint DeviceId;
@@ -208,13 +209,14 @@ namespace busdog
             }
         }
 
-        [StructLayout(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         struct BUSDOG_FILTER_TRACE
         {
             public uint  DeviceId;
             public BUSDOG_REQUEST_TYPE Type;
             public BUSDOG_TIMESTAMP Timestamp;
-            public uint  BufferSize;
+            /* type is size_t in c */
+            public IntPtr BufferSize;
         }
 
         [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
@@ -300,9 +302,9 @@ namespace busdog
                             typeof(BUSDOG_DEVICE_ID));
                     index += Marshal.SizeOf(typeof(BUSDOG_DEVICE_ID));
                     string hardwareId =
-                        Marshal.PtrToStringUni(new IntPtr(outBuffer.ToInt32() + index),
-                            (int)devId.PhysicalDeviceObjectNameSize / 2);
-                    index += (int)devId.PhysicalDeviceObjectNameSize;
+                        Marshal.PtrToStringUni(new IntPtr(outBuffer.ToInt64() + index),
+                            devId.PhysicalDeviceObjectNameSize.ToInt32() / 2);
+                    index += devId.PhysicalDeviceObjectNameSize.ToInt32();
                     deviceIds.Add(new DeviceId(devId.DeviceId, Convert.ToBoolean(devId.Enabled), hardwareId));
                 }        
             }
@@ -354,10 +356,10 @@ namespace busdog
                         Marshal.PtrToStructure(new IntPtr(outBuffer.ToInt64() + index),
                             typeof(BUSDOG_FILTER_TRACE));
                     index += Marshal.SizeOf(typeof(BUSDOG_FILTER_TRACE));
-                    if (bytesReturned >= index + filterTrace.BufferSize)
+                    if (bytesReturned >= index + filterTrace.BufferSize.ToInt32())
                     {
-                        byte[] trace = new byte[filterTrace.BufferSize];
-                        Marshal.Copy(new IntPtr(outBuffer.ToInt32() + index), trace, 0, (int)filterTrace.BufferSize);
+                        byte[] trace = new byte[filterTrace.BufferSize.ToInt32()];
+                        Marshal.Copy(new IntPtr(outBuffer.ToInt64() + index), trace, 0, (int)filterTrace.BufferSize);
                         filterTraces.Add(new FilterTrace(filterTrace.DeviceId, filterTrace.Type, filterTrace.Timestamp, trace));
                     }
                     index += (int)filterTrace.BufferSize;

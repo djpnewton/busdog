@@ -13,7 +13,7 @@ cd %~dp0
 
 :: build busdog filter driver
 build -ceZg
-if exist buildfre_%_buildtype%_%_BUILDARCH%.err goto error
+if exist build%BUILD_ALT_DIR%.err goto error
 echo +++++++++++++++++++++++++++++++++
 echo +++busdog filter driver built!+++
 echo +++++++++++++++++++++++++++++++++
@@ -29,7 +29,11 @@ xcopy /Y %BASEDIR%\redist\DIFx\dpinst\MultiLin\%_BUILDARCH%\dpinst.exe gui\drive
 if errorlevel 1 goto error
 
 ::visual studio environment
-call "C:\Program Files\Microsoft Visual Studio 9.0\VC\vcvarsall.bat" x86
+if "%1"=="64" (
+    call "C:\Program Files\Microsoft Visual Studio 9.0\VC\vcvarsall.bat" x86_amd64
+) else (
+    call "C:\Program Files\Microsoft Visual Studio 9.0\VC\vcvarsall.bat" x86
+)
 cd %~dp0
 
 :: build busdog gui
