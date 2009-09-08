@@ -208,5 +208,26 @@ namespace busdog
         {
             UninstallDriver();
         }
+
+        private void cbTraceListColumn_CheckedChanged(object sender, EventArgs e)
+        {
+            UpdateColumn(chId, cbId);
+            UpdateColumn(chType, cbType);
+            UpdateColumn(chTime, cbTime);
+            UpdateColumn(chLength, cbLength);
+            UpdateColumn(chHex, cbHex);
+            UpdateColumn(chAscii, cbAscii);
+        }
+
+        private void UpdateColumn(ColumnHeader ch, CheckBox cb)
+        {
+            if (cb.Checked && ch.Width == 0)
+                ch.Width = (int)ch.Tag;
+            else if (!cb.Checked && ch.Width != 0)
+            {
+                ch.Tag = ch.Width;
+                ch.Width = 0;
+            }
+        }
     }
 }
