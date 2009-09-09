@@ -276,7 +276,7 @@ namespace busdog
 			internal Int32 cbSize;
 			internal System.Guid ClassGuid;
 			internal Int32 DevInst;
-			internal Int32 Reserved;
+            internal IntPtr Reserved;
 		}
 
 		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
