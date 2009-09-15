@@ -93,31 +93,95 @@ namespace busdog
 
         private void AddFilterTrace(FilterTrace filterTrace)
         {
-            // Create a new row.
-            ListViewItem item = new ListViewItem(filterTrace.DeviceId.ToString());
-            for (int i = 1; i < lvTraces.Columns.Count; i++)
+            // Check filters
+            if (DoesTracePassFilters(filterTrace, FilterInclude.Include) &&
+                DoesTracePassFilters(filterTrace, FilterInclude.Exclude))
             {
-                switch (i)
+                // Create a new row.
+                ListViewItem item = new ListViewItem(filterTrace.DeviceId.ToString());
+                for (int i = 1; i < lvTraces.Columns.Count; i++)
                 {
-                    case 1:
-                        item.SubItems.Add(filterTrace.TypeToStr());
+                    switch (i)
+                    {
+                        case 1:
+                            item.SubItems.Add(filterTrace.TypeToStr());
+                            break;
+                        case 2:
+                            item.SubItems.Add(filterTrace.GetTimestampDelta(prevTrace).ToString());
+                            break;
+                        case 3:
+                            item.SubItems.Add(filterTrace.Buffer.Length.ToString());
+                            break;
+                        case 4:
+                            item.SubItems.Add(filterTrace.BufToHex());
+                            break;
+                        case 5:
+                            item.SubItems.Add(filterTrace.BufToChars());
+                            break;
+                    }
+                }
+                lvTraces.TopItem = lvTraces.Items.Add(item);
+                prevTrace = filterTrace;
+            }
+        }
+
+        private bool DoesTracePassFilters(FilterTrace filterTrace, FilterInclude include)
+        {
+            List<FilterMatch> filters;
+            if (include == FilterInclude.Include)
+                filters = filterControl.IncludeFilters;
+            else
+                filters = filterControl.ExcludeFilters;
+
+            if (filters.Count == 0)
+                return true;
+
+            bool check = true;
+
+            foreach (FilterMatch filter in filters)
+            {
+                switch (filter.FilterType)
+                {
+                    case FilterType.Length:
+                        switch (filter.LengthMatch)
+                        {
+                            case LengthMatch.GreaterThen:
+                                check = filterTrace.Buffer.Length > filter.Length;
+                                break;
+                            case LengthMatch.LessThen:
+                                check = filterTrace.Buffer.Length < filter.Length;
+                                break;
+                            case LengthMatch.EqualTo:
+                                check = filterTrace.Buffer.Length == filter.Length;
+                                break;
+                        }
                         break;
-                    case 2:
-                        item.SubItems.Add(filterTrace.GetTimestampDelta(prevTrace).ToString());
+                    case FilterType.Hex:
+                        check = filterTrace.BufToHex().Contains(filter.Filter);
                         break;
-                    case 3:
-                        item.SubItems.Add(filterTrace.Buffer.Length.ToString());
-                        break;
-                    case 4:
-                        item.SubItems.Add(filterTrace.BufToHex());
-                        break;
-                    case 5:
-                        item.SubItems.Add(filterTrace.BufToChars());
+                    case FilterType.Ascii:
+                        check = filterTrace.BufToChars().Contains(filter.Filter);
                         break;
                 }
+                if (include == FilterInclude.Include)
+                {
+                    if (check)
+                        return true;
+                    else
+                        continue;
+                }
+                else
+                {
+                    if (check)
+                        return false;
+                    else
+                        continue;
+                }
             }
-            lvTraces.TopItem = lvTraces.Items.Add(item);
-            prevTrace = filterTrace;
+            if (include == FilterInclude.Include)
+                return false;
+            else
+                return true;
         }
 
         private void tmrDeviceChange_Tick(object sender, EventArgs e)

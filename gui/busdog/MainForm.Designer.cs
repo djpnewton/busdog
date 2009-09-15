@@ -46,18 +46,19 @@
             this.btnStartTraces = new System.Windows.Forms.ToolStripButton();
             this.btnClearTraces = new System.Windows.Forms.ToolStripButton();
             this.tabSetup = new System.Windows.Forms.TabPage();
-            this.btnUninstall = new System.Windows.Forms.Button();
+            this.filterControl = new busdog.FilterControl();
+            this.gbTraceList = new System.Windows.Forms.GroupBox();
+            this.cbAscii = new System.Windows.Forms.CheckBox();
+            this.cbHex = new System.Windows.Forms.CheckBox();
+            this.cbLength = new System.Windows.Forms.CheckBox();
+            this.cbTime = new System.Windows.Forms.CheckBox();
+            this.cbType = new System.Windows.Forms.CheckBox();
+            this.cbId = new System.Windows.Forms.CheckBox();
+            this.gbFilterDriver = new System.Windows.Forms.GroupBox();
             this.btnReinstall = new System.Windows.Forms.Button();
+            this.btnUninstall = new System.Windows.Forms.Button();
             this.tmrTrace = new System.Windows.Forms.Timer(this.components);
             this.tmrDeviceChange = new System.Windows.Forms.Timer(this.components);
-            this.gbFilterDriver = new System.Windows.Forms.GroupBox();
-            this.gbTraceList = new System.Windows.Forms.GroupBox();
-            this.cbId = new System.Windows.Forms.CheckBox();
-            this.cbType = new System.Windows.Forms.CheckBox();
-            this.cbTime = new System.Windows.Forms.CheckBox();
-            this.cbLength = new System.Windows.Forms.CheckBox();
-            this.cbHex = new System.Windows.Forms.CheckBox();
-            this.cbAscii = new System.Windows.Forms.CheckBox();
             this.tabControl.SuspendLayout();
             this.tabDevices.SuspendLayout();
             this.tabTrace.SuspendLayout();
@@ -66,8 +67,8 @@
             this.tscTrace.SuspendLayout();
             this.tsTrace.SuspendLayout();
             this.tabSetup.SuspendLayout();
-            this.gbFilterDriver.SuspendLayout();
             this.gbTraceList.SuspendLayout();
+            this.gbFilterDriver.SuspendLayout();
             this.SuspendLayout();
             // 
             // tabControl
@@ -79,7 +80,7 @@
             this.tabControl.Location = new System.Drawing.Point(0, 0);
             this.tabControl.Name = "tabControl";
             this.tabControl.SelectedIndex = 0;
-            this.tabControl.Size = new System.Drawing.Size(292, 266);
+            this.tabControl.Size = new System.Drawing.Size(385, 386);
             this.tabControl.TabIndex = 0;
             // 
             // tabDevices
@@ -88,7 +89,7 @@
             this.tabDevices.Location = new System.Drawing.Point(4, 22);
             this.tabDevices.Name = "tabDevices";
             this.tabDevices.Padding = new System.Windows.Forms.Padding(3);
-            this.tabDevices.Size = new System.Drawing.Size(284, 240);
+            this.tabDevices.Size = new System.Drawing.Size(377, 360);
             this.tabDevices.TabIndex = 0;
             this.tabDevices.Text = "Devices";
             this.tabDevices.UseVisualStyleBackColor = true;
@@ -101,7 +102,7 @@
             this.tvDevices.Location = new System.Drawing.Point(3, 3);
             this.tvDevices.Name = "tvDevices";
             this.tvDevices.ShowNodeToolTips = true;
-            this.tvDevices.Size = new System.Drawing.Size(278, 234);
+            this.tvDevices.Size = new System.Drawing.Size(371, 354);
             this.tvDevices.TabIndex = 1;
             this.tvDevices.AfterCheck += new System.Windows.Forms.TreeViewEventHandler(this.tvDevices_AfterCheck);
             // 
@@ -111,7 +112,7 @@
             this.tabTrace.Location = new System.Drawing.Point(4, 22);
             this.tabTrace.Name = "tabTrace";
             this.tabTrace.Padding = new System.Windows.Forms.Padding(3);
-            this.tabTrace.Size = new System.Drawing.Size(284, 240);
+            this.tabTrace.Size = new System.Drawing.Size(377, 360);
             this.tabTrace.TabIndex = 1;
             this.tabTrace.Text = "Trace";
             this.tabTrace.UseVisualStyleBackColor = true;
@@ -122,11 +123,11 @@
             // tscTrace.ContentPanel
             // 
             this.tscTrace.ContentPanel.Controls.Add(this.lvTraces);
-            this.tscTrace.ContentPanel.Size = new System.Drawing.Size(278, 209);
+            this.tscTrace.ContentPanel.Size = new System.Drawing.Size(371, 329);
             this.tscTrace.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tscTrace.Location = new System.Drawing.Point(3, 3);
             this.tscTrace.Name = "tscTrace";
-            this.tscTrace.Size = new System.Drawing.Size(278, 234);
+            this.tscTrace.Size = new System.Drawing.Size(371, 354);
             this.tscTrace.TabIndex = 1;
             this.tscTrace.Text = "toolStripContainer1";
             // 
@@ -150,7 +151,7 @@
             this.lvTraces.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
             this.lvTraces.Location = new System.Drawing.Point(0, 0);
             this.lvTraces.Name = "lvTraces";
-            this.lvTraces.Size = new System.Drawing.Size(278, 209);
+            this.lvTraces.Size = new System.Drawing.Size(371, 329);
             this.lvTraces.TabIndex = 3;
             this.lvTraces.UseCompatibleStateImageBehavior = false;
             this.lvTraces.View = System.Windows.Forms.View.Details;
@@ -191,7 +192,7 @@
             this.btnClearTraces});
             this.tsTrace.Location = new System.Drawing.Point(3, 0);
             this.tsTrace.Name = "tsTrace";
-            this.tsTrace.Size = new System.Drawing.Size(83, 25);
+            this.tsTrace.Size = new System.Drawing.Size(114, 25);
             this.tsTrace.TabIndex = 4;
             this.tsTrace.Text = "tsTrace";
             // 
@@ -218,56 +219,29 @@
             // 
             // tabSetup
             // 
+            this.tabSetup.Controls.Add(this.filterControl);
             this.tabSetup.Controls.Add(this.gbTraceList);
             this.tabSetup.Controls.Add(this.gbFilterDriver);
             this.tabSetup.Location = new System.Drawing.Point(4, 22);
             this.tabSetup.Name = "tabSetup";
-            this.tabSetup.Size = new System.Drawing.Size(284, 240);
+            this.tabSetup.Size = new System.Drawing.Size(377, 360);
             this.tabSetup.TabIndex = 2;
             this.tabSetup.Text = "Setup";
             this.tabSetup.UseVisualStyleBackColor = true;
             // 
-            // btnUninstall
+            // filterControl
             // 
-            this.btnUninstall.Location = new System.Drawing.Point(114, 19);
-            this.btnUninstall.Name = "btnUninstall";
-            this.btnUninstall.Size = new System.Drawing.Size(102, 23);
-            this.btnUninstall.TabIndex = 1;
-            this.btnUninstall.Text = "Uninstall";
-            this.btnUninstall.UseVisualStyleBackColor = true;
-            this.btnUninstall.Click += new System.EventHandler(this.btnUninstall_Click);
-            // 
-            // btnReinstall
-            // 
-            this.btnReinstall.Location = new System.Drawing.Point(6, 19);
-            this.btnReinstall.Name = "btnReinstall";
-            this.btnReinstall.Size = new System.Drawing.Size(102, 23);
-            this.btnReinstall.TabIndex = 0;
-            this.btnReinstall.Text = "Reinstall";
-            this.btnReinstall.UseVisualStyleBackColor = true;
-            this.btnReinstall.Click += new System.EventHandler(this.btnReinstall_Click);
-            // 
-            // tmrTrace
-            // 
-            this.tmrTrace.Tick += new System.EventHandler(this.tmrTrace_Tick);
-            // 
-            // tmrDeviceChange
-            // 
-            this.tmrDeviceChange.Interval = 1000;
-            this.tmrDeviceChange.Tick += new System.EventHandler(this.tmrDeviceChange_Tick);
-            // 
-            // gbFilterDriver
-            // 
-            this.gbFilterDriver.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
+            this.filterControl.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+                        | System.Windows.Forms.AnchorStyles.Left)
                         | System.Windows.Forms.AnchorStyles.Right)));
-            this.gbFilterDriver.Controls.Add(this.btnReinstall);
-            this.gbFilterDriver.Controls.Add(this.btnUninstall);
-            this.gbFilterDriver.Location = new System.Drawing.Point(8, 3);
-            this.gbFilterDriver.Name = "gbFilterDriver";
-            this.gbFilterDriver.Size = new System.Drawing.Size(268, 51);
-            this.gbFilterDriver.TabIndex = 2;
-            this.gbFilterDriver.TabStop = false;
-            this.gbFilterDriver.Text = "Filter Driver";
+            this.filterControl.Filter = "";
+            this.filterControl.Include = busdog.FilterInclude.Include;
+            this.filterControl.LengthMatch_ = busdog.LengthMatch.GreaterThen;
+            this.filterControl.Location = new System.Drawing.Point(8, 156);
+            this.filterControl.Name = "filterControl";
+            this.filterControl.Size = new System.Drawing.Size(361, 196);
+            this.filterControl.TabIndex = 4;
+            this.filterControl.Type = busdog.FilterType.Length;
             // 
             // gbTraceList
             // 
@@ -281,75 +255,10 @@
             this.gbTraceList.Controls.Add(this.cbId);
             this.gbTraceList.Location = new System.Drawing.Point(8, 60);
             this.gbTraceList.Name = "gbTraceList";
-            this.gbTraceList.Size = new System.Drawing.Size(268, 90);
+            this.gbTraceList.Size = new System.Drawing.Size(361, 90);
             this.gbTraceList.TabIndex = 3;
             this.gbTraceList.TabStop = false;
             this.gbTraceList.Text = "Trace List Columns";
-            // 
-            // cbId
-            // 
-            this.cbId.AutoSize = true;
-            this.cbId.Checked = true;
-            this.cbId.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbId.Location = new System.Drawing.Point(6, 19);
-            this.cbId.Name = "cbId";
-            this.cbId.Size = new System.Drawing.Size(35, 17);
-            this.cbId.TabIndex = 0;
-            this.cbId.Text = "Id";
-            this.cbId.UseVisualStyleBackColor = true;
-            this.cbId.CheckedChanged += new System.EventHandler(this.cbTraceListColumn_CheckedChanged);
-            // 
-            // cbType
-            // 
-            this.cbType.AutoSize = true;
-            this.cbType.Checked = true;
-            this.cbType.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbType.Location = new System.Drawing.Point(6, 42);
-            this.cbType.Name = "cbType";
-            this.cbType.Size = new System.Drawing.Size(50, 17);
-            this.cbType.TabIndex = 1;
-            this.cbType.Text = "Type";
-            this.cbType.UseVisualStyleBackColor = true;
-            this.cbType.CheckedChanged += new System.EventHandler(this.cbTraceListColumn_CheckedChanged);
-            // 
-            // cbTime
-            // 
-            this.cbTime.AutoSize = true;
-            this.cbTime.Checked = true;
-            this.cbTime.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbTime.Location = new System.Drawing.Point(6, 65);
-            this.cbTime.Name = "cbTime";
-            this.cbTime.Size = new System.Drawing.Size(49, 17);
-            this.cbTime.TabIndex = 2;
-            this.cbTime.Text = "Time";
-            this.cbTime.UseVisualStyleBackColor = true;
-            this.cbTime.CheckedChanged += new System.EventHandler(this.cbTraceListColumn_CheckedChanged);
-            // 
-            // cbLength
-            // 
-            this.cbLength.AutoSize = true;
-            this.cbLength.Checked = true;
-            this.cbLength.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbLength.Location = new System.Drawing.Point(114, 19);
-            this.cbLength.Name = "cbLength";
-            this.cbLength.Size = new System.Drawing.Size(59, 17);
-            this.cbLength.TabIndex = 3;
-            this.cbLength.Text = "Length";
-            this.cbLength.UseVisualStyleBackColor = true;
-            this.cbLength.CheckedChanged += new System.EventHandler(this.cbTraceListColumn_CheckedChanged);
-            // 
-            // cbHex
-            // 
-            this.cbHex.AutoSize = true;
-            this.cbHex.Checked = true;
-            this.cbHex.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbHex.Location = new System.Drawing.Point(114, 42);
-            this.cbHex.Name = "cbHex";
-            this.cbHex.Size = new System.Drawing.Size(45, 17);
-            this.cbHex.TabIndex = 4;
-            this.cbHex.Text = "Hex";
-            this.cbHex.UseVisualStyleBackColor = true;
-            this.cbHex.CheckedChanged += new System.EventHandler(this.cbTraceListColumn_CheckedChanged);
             // 
             // cbAscii
             // 
@@ -364,11 +273,118 @@
             this.cbAscii.UseVisualStyleBackColor = true;
             this.cbAscii.CheckedChanged += new System.EventHandler(this.cbTraceListColumn_CheckedChanged);
             // 
+            // cbHex
+            // 
+            this.cbHex.AutoSize = true;
+            this.cbHex.Checked = true;
+            this.cbHex.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.cbHex.Location = new System.Drawing.Point(114, 42);
+            this.cbHex.Name = "cbHex";
+            this.cbHex.Size = new System.Drawing.Size(45, 17);
+            this.cbHex.TabIndex = 4;
+            this.cbHex.Text = "Hex";
+            this.cbHex.UseVisualStyleBackColor = true;
+            this.cbHex.CheckedChanged += new System.EventHandler(this.cbTraceListColumn_CheckedChanged);
+            // 
+            // cbLength
+            // 
+            this.cbLength.AutoSize = true;
+            this.cbLength.Checked = true;
+            this.cbLength.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.cbLength.Location = new System.Drawing.Point(114, 19);
+            this.cbLength.Name = "cbLength";
+            this.cbLength.Size = new System.Drawing.Size(59, 17);
+            this.cbLength.TabIndex = 3;
+            this.cbLength.Text = "Length";
+            this.cbLength.UseVisualStyleBackColor = true;
+            this.cbLength.CheckedChanged += new System.EventHandler(this.cbTraceListColumn_CheckedChanged);
+            // 
+            // cbTime
+            // 
+            this.cbTime.AutoSize = true;
+            this.cbTime.Checked = true;
+            this.cbTime.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.cbTime.Location = new System.Drawing.Point(6, 65);
+            this.cbTime.Name = "cbTime";
+            this.cbTime.Size = new System.Drawing.Size(49, 17);
+            this.cbTime.TabIndex = 2;
+            this.cbTime.Text = "Time";
+            this.cbTime.UseVisualStyleBackColor = true;
+            this.cbTime.CheckedChanged += new System.EventHandler(this.cbTraceListColumn_CheckedChanged);
+            // 
+            // cbType
+            // 
+            this.cbType.AutoSize = true;
+            this.cbType.Checked = true;
+            this.cbType.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.cbType.Location = new System.Drawing.Point(6, 42);
+            this.cbType.Name = "cbType";
+            this.cbType.Size = new System.Drawing.Size(50, 17);
+            this.cbType.TabIndex = 1;
+            this.cbType.Text = "Type";
+            this.cbType.UseVisualStyleBackColor = true;
+            this.cbType.CheckedChanged += new System.EventHandler(this.cbTraceListColumn_CheckedChanged);
+            // 
+            // cbId
+            // 
+            this.cbId.AutoSize = true;
+            this.cbId.Checked = true;
+            this.cbId.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.cbId.Location = new System.Drawing.Point(6, 19);
+            this.cbId.Name = "cbId";
+            this.cbId.Size = new System.Drawing.Size(35, 17);
+            this.cbId.TabIndex = 0;
+            this.cbId.Text = "Id";
+            this.cbId.UseVisualStyleBackColor = true;
+            this.cbId.CheckedChanged += new System.EventHandler(this.cbTraceListColumn_CheckedChanged);
+            // 
+            // gbFilterDriver
+            // 
+            this.gbFilterDriver.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
+                        | System.Windows.Forms.AnchorStyles.Right)));
+            this.gbFilterDriver.Controls.Add(this.btnReinstall);
+            this.gbFilterDriver.Controls.Add(this.btnUninstall);
+            this.gbFilterDriver.Location = new System.Drawing.Point(8, 3);
+            this.gbFilterDriver.Name = "gbFilterDriver";
+            this.gbFilterDriver.Size = new System.Drawing.Size(361, 51);
+            this.gbFilterDriver.TabIndex = 2;
+            this.gbFilterDriver.TabStop = false;
+            this.gbFilterDriver.Text = "Filter Driver";
+            // 
+            // btnReinstall
+            // 
+            this.btnReinstall.Location = new System.Drawing.Point(6, 19);
+            this.btnReinstall.Name = "btnReinstall";
+            this.btnReinstall.Size = new System.Drawing.Size(102, 23);
+            this.btnReinstall.TabIndex = 0;
+            this.btnReinstall.Text = "Reinstall";
+            this.btnReinstall.UseVisualStyleBackColor = true;
+            this.btnReinstall.Click += new System.EventHandler(this.btnReinstall_Click);
+            // 
+            // btnUninstall
+            // 
+            this.btnUninstall.Location = new System.Drawing.Point(114, 19);
+            this.btnUninstall.Name = "btnUninstall";
+            this.btnUninstall.Size = new System.Drawing.Size(102, 23);
+            this.btnUninstall.TabIndex = 1;
+            this.btnUninstall.Text = "Uninstall";
+            this.btnUninstall.UseVisualStyleBackColor = true;
+            this.btnUninstall.Click += new System.EventHandler(this.btnUninstall_Click);
+            // 
+            // tmrTrace
+            // 
+            this.tmrTrace.Tick += new System.EventHandler(this.tmrTrace_Tick);
+            // 
+            // tmrDeviceChange
+            // 
+            this.tmrDeviceChange.Interval = 1000;
+            this.tmrDeviceChange.Tick += new System.EventHandler(this.tmrDeviceChange_Tick);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(292, 266);
+            this.ClientSize = new System.Drawing.Size(385, 386);
             this.Controls.Add(this.tabControl);
             this.Name = "MainForm";
             this.Text = "BusDog";
@@ -383,9 +399,9 @@
             this.tsTrace.ResumeLayout(false);
             this.tsTrace.PerformLayout();
             this.tabSetup.ResumeLayout(false);
-            this.gbFilterDriver.ResumeLayout(false);
             this.gbTraceList.ResumeLayout(false);
             this.gbTraceList.PerformLayout();
+            this.gbFilterDriver.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -420,6 +436,7 @@
         private System.Windows.Forms.CheckBox cbAscii;
         private System.Windows.Forms.CheckBox cbHex;
         private System.Windows.Forms.CheckBox cbLength;
+        private FilterControl filterControl;
     }
 }
 
