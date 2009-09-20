@@ -739,6 +739,8 @@ Return Value:
 
             BusDogFiltering = TRUE;
 
+            BusDogTraceFifoCleanUp();
+
             WdfRequestComplete(Request, STATUS_SUCCESS);
 
             return;
@@ -752,6 +754,8 @@ Return Value:
             BusDogPrint(BUSDOG_DEBUG_INFO, "Filtering disabled\n");
 
             BusDogFiltering = FALSE;
+
+            BusDogTraceFifoCleanUp();
 
             WdfRequestComplete(Request, STATUS_SUCCESS);
             

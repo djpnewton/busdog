@@ -207,7 +207,12 @@ namespace busdog
 
         private void btnStartTraces_Click(object sender, EventArgs e)
         {
-            if (btnStartTraces.Checked)
+            UpdateTracingStatus();
+        }
+
+        private void UpdateTracingStatus()
+        {
+            if (btnStartTraces.Checked && tabControl.SelectedTab == tabTrace)
                 native.StartTracing();
             else
                 native.StopTracing();
@@ -300,6 +305,11 @@ namespace busdog
                 ch.Tag = ch.Width;
                 ch.Width = 0;
             }
+        }
+
+        private void tabControl_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            UpdateTracingStatus();
         }
     }
 
