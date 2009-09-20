@@ -35,7 +35,7 @@
             this.tvDevices = new System.Windows.Forms.TreeView();
             this.tabTrace = new System.Windows.Forms.TabPage();
             this.tscTrace = new System.Windows.Forms.ToolStripContainer();
-            this.lvTraces = new System.Windows.Forms.ListView();
+            this.lvTraces = new busdog.BufferedListView();
             this.chId = new System.Windows.Forms.ColumnHeader();
             this.chType = new System.Windows.Forms.ColumnHeader();
             this.chTime = new System.Windows.Forms.ColumnHeader();
@@ -412,7 +412,7 @@
         private System.Windows.Forms.TabPage tabDevices;
         private System.Windows.Forms.TabPage tabTrace;
         private System.Windows.Forms.Timer tmrTrace;
-        private System.Windows.Forms.ListView lvTraces;
+        private BufferedListView lvTraces;
         private System.Windows.Forms.ColumnHeader chId;
         private System.Windows.Forms.ColumnHeader chType;
         private System.Windows.Forms.ColumnHeader chTime;

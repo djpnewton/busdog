@@ -135,9 +135,9 @@ namespace busdog
 
     public class Native
     {
-        uint outBufferSize = 0x1000;
+        uint outBufferSize = 0x10000;
         IntPtr outBuffer;
-        uint inBufferSize = 0x1000;
+        uint inBufferSize = 0x10000;
         IntPtr inBuffer;
  
         public Native()

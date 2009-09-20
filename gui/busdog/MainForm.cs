@@ -28,6 +28,8 @@ namespace busdog
 
         private void EnumFilterDevices()
         {
+            SuspendLayout();
+
             tvDevices.Nodes.Clear();
 
             List<DeviceId> deviceIds;
@@ -46,6 +48,8 @@ namespace busdog
                     tvDevices.Nodes.Add(child);
             }
             tvDevices.ExpandAll();
+
+            ResumeLayout(true);
         }
 
         private bool InsertNodeInDeviceTree(DeviceId devId, TreeNodeCollection parentNodes, TreeNode child)
@@ -80,6 +84,8 @@ namespace busdog
         {
             if (tabControl.SelectedTab == tabTrace)
             {
+                SuspendLayout();
+
                 List<FilterTrace> filterTraces;
                 if (native.GetTraceList(out filterTraces))
                 {
@@ -88,6 +94,8 @@ namespace busdog
                         AddFilterTrace(filterTrace);
                     }
                 }
+
+                ResumeLayout(true);
             }
         }
 
@@ -292,6 +300,15 @@ namespace busdog
                 ch.Tag = ch.Width;
                 ch.Width = 0;
             }
+        }
+    }
+
+    public class BufferedListView : ListView
+    {
+        public BufferedListView()
+            : base()
+        {
+            SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
         }
     }
 }
