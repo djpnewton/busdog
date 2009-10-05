@@ -1425,45 +1425,133 @@ BusDogProcessInternalDeviceControl(
             case IOCTL_INTERNAL_USB_SUBMIT_URB:
             {
                 PURB pUrb;
+                PVOID pTransferBuffer = NULL;
+                PMDL pTransferBufferMDL = NULL;
+                ULONG TransferBufferLength = 0;
+                BOOLEAN urbHandled = TRUE;
 
                 BusDogPrint(BUSDOG_DEBUG_INFO, "    IOCTL_INTERNAL_USB_SUBMIT_URB\n");
                 
                 pUrb = (PURB) IoGetCurrentIrpStackLocation(WdfRequestWdmGetIrp(Request))->Parameters.Others.Argument1;
 
-                if (pUrb->UrbHeader.Function == URB_FUNCTION_BULK_OR_INTERRUPT_TRANSFER)
+                //
+                // Figure out what kinda urb we have and set up transfer vars
+                //
+
+                switch (pUrb->UrbHeader.Function)
                 {
-                    struct _URB_BULK_OR_INTERRUPT_TRANSFER* pTransfer = (struct _URB_BULK_OR_INTERRUPT_TRANSFER*)pUrb;
-                    *bRead = (BOOLEAN)(pTransfer->TransferFlags & USBD_TRANSFER_DIRECTION_IN);
-                    
-                    BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_BULK_OR_INTERRUPT_TRANSFER\n");
-                    BusDogPrint(BUSDOG_DEBUG_INFO, "        TransferBufferLength: %d\n", pTransfer->TransferBufferLength);
-                    BusDogPrint(BUSDOG_DEBUG_INFO, "        R/W: %s, MDL: %d\n", *bRead ? "read" : "write", pTransfer->TransferBufferMDL != NULL);
+                    case URB_FUNCTION_BULK_OR_INTERRUPT_TRANSFER:
+                    {
+                        struct _URB_BULK_OR_INTERRUPT_TRANSFER* pTransfer = (struct _URB_BULK_OR_INTERRUPT_TRANSFER*)pUrb;
+                        *bRead = (BOOLEAN)(pTransfer->TransferFlags & USBD_TRANSFER_DIRECTION_IN);
+
+                        BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_BULK_OR_INTERRUPT_TRANSFER\n");
+
+                        pTransferBuffer = pTransfer->TransferBuffer;
+                        pTransferBufferMDL = pTransfer->TransferBufferMDL;
+                        TransferBufferLength = pTransfer->TransferBufferLength;
+
+                        break;
+                    }
+                    case URB_FUNCTION_CONTROL_TRANSFER:
+                    {
+                        struct _URB_CONTROL_TRANSFER* pTransfer =  (struct _URB_CONTROL_TRANSFER*)pUrb;
+                        *bRead = (BOOLEAN)(pTransfer->TransferFlags & USBD_TRANSFER_DIRECTION_IN);
+
+                        BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_CONTROL_TRANSFER\n");
+
+                        pTransferBuffer = pTransfer->TransferBuffer;
+                        pTransferBufferMDL = pTransfer->TransferBufferMDL;
+                        TransferBufferLength = pTransfer->TransferBufferLength;
+
+                        break;
+                    }
+                    case URB_FUNCTION_VENDOR_DEVICE:
+                    case URB_FUNCTION_VENDOR_INTERFACE:
+                    case URB_FUNCTION_VENDOR_ENDPOINT:
+                    case URB_FUNCTION_VENDOR_OTHER:
+                    case URB_FUNCTION_CLASS_DEVICE:
+                    case URB_FUNCTION_CLASS_INTERFACE:
+                    case URB_FUNCTION_CLASS_ENDPOINT:
+                    case URB_FUNCTION_CLASS_OTHER:
+                    {
+                        struct _URB_CONTROL_VENDOR_OR_CLASS_REQUEST* pTransfer =  (struct _URB_CONTROL_VENDOR_OR_CLASS_REQUEST*)pUrb;
+                        *bRead = (BOOLEAN)(pTransfer->TransferFlags & USBD_TRANSFER_DIRECTION_IN);
+
+                        switch (pUrb->UrbHeader.Function)
+                        {
+                            case URB_FUNCTION_VENDOR_DEVICE:
+                                BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_VENDOR_DEVICE\n");
+                                break;
+                            case URB_FUNCTION_VENDOR_INTERFACE:
+                                BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_VENDOR_INTERFACE\n");
+                                break;
+                            case URB_FUNCTION_VENDOR_ENDPOINT:
+                                BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_VENDOR_ENDPOINT\n");
+                                break;
+                            case URB_FUNCTION_VENDOR_OTHER:
+                                BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_VENDOR_OTHER\n");
+                                break;
+                            case URB_FUNCTION_CLASS_DEVICE:
+                                BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_CLASS_DEVICE\n");
+                                break;
+                            case URB_FUNCTION_CLASS_INTERFACE:
+                                BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_CLASS_INTERFACE\n");
+                                break;
+                            case URB_FUNCTION_CLASS_ENDPOINT:
+                                BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_CLASS_ENDPOINT\n");
+                                break;
+                            case URB_FUNCTION_CLASS_OTHER:
+                                BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_CLASS_OTHER\n");
+                                break;
+                        }
+
+                        pTransferBuffer = pTransfer->TransferBuffer;
+                        pTransferBufferMDL = pTransfer->TransferBufferMDL;
+                        TransferBufferLength = pTransfer->TransferBufferLength;
+
+                        break;
+                    }
+                    default:
+                        BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION: %d\n", pUrb->UrbHeader.Function);
+                        urbHandled = FALSE;
+                        break;
+                }
+
+                //
+                // If we have an urb we want (bulk, interupt and control) then lets process it
+                //
+                
+                if (urbHandled)
+                {
+                    BusDogPrint(BUSDOG_DEBUG_INFO, "        TransferBufferLength: %d\n", TransferBufferLength);
+                    BusDogPrint(BUSDOG_DEBUG_INFO, "        R/W: %s, MDL: %d\n", *bRead ? "read" : "write", pTransferBufferMDL != NULL);
 
                     if (bCompletion && *bRead || !bCompletion && !*bRead)
                     {
                         BusDogPrint(BUSDOG_DEBUG_INFO, "        Data: ");
 
-                        if (pTransfer->TransferBuffer != NULL)
+                        if (pTransferBuffer != NULL)
                         {
-                            PrintChars((PCHAR)pTransfer->TransferBuffer, pTransfer->TransferBufferLength);
+                            PrintChars((PCHAR)pTransferBuffer, TransferBufferLength);
 
                             BusDogAddTraceToFifo(Device,
                                     Context->DeviceId, 
                                     *bRead ? BusDogReadRequest : BusDogWriteRequest, 
-                                    pTransfer->TransferBuffer, 
-                                    pTransfer->TransferBufferLength);
+                                    pTransferBuffer, 
+                                    TransferBufferLength);
                         }
-                        else if (pTransfer->TransferBufferMDL != NULL)
+                        else if (pTransferBufferMDL != NULL)
                         {
-                            PCHAR pMDLBuf = (PCHAR)MmGetSystemAddressForMdlSafe(pTransfer->TransferBufferMDL, NormalPagePriority);
+                            PCHAR pMDLBuf = (PCHAR)MmGetSystemAddressForMdlSafe(pTransferBufferMDL, NormalPagePriority);
 
-                            PrintChars(pMDLBuf, pTransfer->TransferBufferLength);
+                            PrintChars(pMDLBuf, TransferBufferLength);
 
                             BusDogAddTraceToFifo(Device,
                                     Context->DeviceId, 
                                     *bRead ? BusDogReadRequest : BusDogWriteRequest, 
                                     pMDLBuf, 
-                                    pTransfer->TransferBufferLength);
+                                    TransferBufferLength);
                         }
                         else
                         {
