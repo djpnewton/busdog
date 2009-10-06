@@ -45,6 +45,26 @@ namespace busdog
         BusDogMaxRequestType
     }
 
+    public enum BUSDOG_REQUEST_INTERNAL_DEVICE_CONTROL_TYPE
+    {
+        BusDogUSB = 0x2000
+    };
+
+    public enum BUSDOG_REQUEST_USB_DIRECTION
+    {
+        BusDogUsbIn = 0x0,
+        BusDogUsbOut
+    };
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct BUSDOG_REQUEST_PARAMS
+    {
+        public uint p1;
+        public uint p2;
+        public uint p3;
+        public uint p4;
+    };
+
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct BUSDOG_TIMESTAMP
     {
@@ -61,12 +81,14 @@ namespace busdog
     {
         public uint  DeviceId;
         public BUSDOG_REQUEST_TYPE Type;
+        public BUSDOG_REQUEST_PARAMS Params;
         public BUSDOG_TIMESTAMP Timestamp;
         public byte[] Buffer;
-        public FilterTrace(uint devId, BUSDOG_REQUEST_TYPE type, BUSDOG_TIMESTAMP timestamp, byte[] buffer)
+        public FilterTrace(uint devId, BUSDOG_REQUEST_TYPE type, BUSDOG_REQUEST_PARAMS params_, BUSDOG_TIMESTAMP timestamp, byte[] buffer)
         {
             DeviceId = devId;
             Type = type;
+            Params = params_;
             Timestamp = timestamp;
             Buffer = buffer;
         }
@@ -79,8 +101,18 @@ namespace busdog
                     return "R";
                 case BUSDOG_REQUEST_TYPE.BusDogWriteRequest:
                     return "W";
+                case BUSDOG_REQUEST_TYPE.BusDogInternalDeviceControlRequest:
+                    if ((BUSDOG_REQUEST_INTERNAL_DEVICE_CONTROL_TYPE)Params.p1 == BUSDOG_REQUEST_INTERNAL_DEVICE_CONTROL_TYPE.BusDogUSB)
+                    {
+                        if ((BUSDOG_REQUEST_USB_DIRECTION)Params.p2 == BUSDOG_REQUEST_USB_DIRECTION.BusDogUsbIn)
+                            return string.Format("In  (USB URB Function: {0})", Params.p3);
+                        else if ((BUSDOG_REQUEST_USB_DIRECTION)Params.p2 == BUSDOG_REQUEST_USB_DIRECTION.BusDogUsbOut)
+                            return string.Format("Out (USB URB Function: {0})", Params.p3);;
+                        return string.Format("USB? (p2: {0}, p3: {1})", Params.p2, Params.p3);
+                    }
+                    goto default;
                 default:
-                    return "?";
+                    return string.Format("? (Type: {0}, p1, {1}, p2: {2}, p3: {3}, p4: {4})", Type, Params.p1, Params.p2, Params.p3, Params.p4);
             }
         }
 
@@ -214,6 +246,7 @@ namespace busdog
         {
             public uint  DeviceId;
             public BUSDOG_REQUEST_TYPE Type;
+            public BUSDOG_REQUEST_PARAMS Params;
             public BUSDOG_TIMESTAMP Timestamp;
             /* type is size_t in c */
             public IntPtr BufferSize;
@@ -360,7 +393,7 @@ namespace busdog
                     {
                         byte[] trace = new byte[filterTrace.BufferSize.ToInt32()];
                         Marshal.Copy(new IntPtr(outBuffer.ToInt64() + index), trace, 0, (int)filterTrace.BufferSize);
-                        filterTraces.Add(new FilterTrace(filterTrace.DeviceId, filterTrace.Type, filterTrace.Timestamp, trace));
+                        filterTraces.Add(new FilterTrace(filterTrace.DeviceId, filterTrace.Type, filterTrace.Params, filterTrace.Timestamp, trace));
                     }
                     index += (int)filterTrace.BufferSize;
                 }        

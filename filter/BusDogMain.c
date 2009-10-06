@@ -1115,13 +1115,21 @@ BusDogIoRead(
 
             if (NT_SUCCESS(status)) 
             {
+                BUSDOG_REQUEST_PARAMS params;
+                BUSDOG_REQUEST_PARAMS_INIT(&params);
+
                 //
                 // Print the info to the debugger
                 //
                 BusDogPrint(BUSDOG_DEBUG_INFO, "BusDogIoRead       %2d: Length-0x%x Data-", context->DeviceId, Length);
                 PrintChars(dataBuffer, Length);
 
-                BusDogAddTraceToFifo(device, context->DeviceId, BusDogReadRequest, dataBuffer, Length);
+                BusDogAddTraceToFifo(device, 
+                                     context->DeviceId, 
+                                     BusDogReadRequest, 
+                                     params, 
+                                     dataBuffer, 
+                                     Length);
             }
             else
             {
@@ -1212,13 +1220,16 @@ BusDogIoWrite(
 
             if (NT_SUCCESS(status)) 
             {
+                BUSDOG_REQUEST_PARAMS params;
+                BUSDOG_REQUEST_PARAMS_INIT(&params);
+
                 //
                 // Print the info to the debugger
                 //
                 BusDogPrint(BUSDOG_DEBUG_INFO, "BusDogIoWrite      %2d: Length-0x%x Data-", context->DeviceId, Length);
                 PrintChars(dataBuffer, Length);
 
-                BusDogAddTraceToFifo(device, context->DeviceId, BusDogWriteRequest, dataBuffer, Length);
+                BusDogAddTraceToFifo(device, context->DeviceId, BusDogWriteRequest, params, dataBuffer, Length);
             }
             else
             {
@@ -1529,6 +1540,13 @@ BusDogProcessInternalDeviceControl(
 
                     if (bCompletion && *bRead || !bCompletion && !*bRead)
                     {
+                        BUSDOG_REQUEST_PARAMS params;
+                        BUSDOG_REQUEST_PARAMS_INIT(&params);
+
+                        params.p1 = BusDogUSB;
+                        params.p2 = *bRead ? BusDogUsbIn : BusDogUsbOut;
+                        params.p3 = pUrb->UrbHeader.Function;
+
                         BusDogPrint(BUSDOG_DEBUG_INFO, "        Data: ");
 
                         if (pTransferBuffer != NULL)
@@ -1537,7 +1555,8 @@ BusDogProcessInternalDeviceControl(
 
                             BusDogAddTraceToFifo(Device,
                                     Context->DeviceId, 
-                                    *bRead ? BusDogReadRequest : BusDogWriteRequest, 
+                                    BusDogInternalDeviceControlRequest, 
+                                    params,
                                     pTransferBuffer, 
                                     TransferBufferLength);
                         }
@@ -1549,7 +1568,8 @@ BusDogProcessInternalDeviceControl(
 
                             BusDogAddTraceToFifo(Device,
                                     Context->DeviceId, 
-                                    *bRead ? BusDogReadRequest : BusDogWriteRequest, 
+                                    BusDogInternalDeviceControlRequest, 
+                                    params,
                                     pMDLBuf, 
                                     TransferBufferLength);
                         }

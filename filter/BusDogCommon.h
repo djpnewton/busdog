@@ -219,6 +219,7 @@ BusDogAddTraceToFifo(
     WDFDEVICE device,
     ULONG DeviceId,
     BUSDOG_REQUEST_TYPE Type,
+    BUSDOG_REQUEST_PARAMS Params,
     PVOID TraceBuffer,
     ULONG BufferLength
     );

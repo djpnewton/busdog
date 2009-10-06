@@ -77,16 +77,45 @@ typedef struct
 //  with a request type, which indicates the type of 
 //  WDFREQUEST it represents
 //
-typedef enum _REQUEST_TYPE {
-
+typedef enum _REQUEST_TYPE 
+{
     BusDogReadRequest = 0x2000,
     BusDogWriteRequest,
     BusDogDeviceControlRequest,
     BusDogInternalDeviceControlRequest,
     BusDogPnPRequest,
     BusDogMaxRequestType
-
 } BUSDOG_REQUEST_TYPE;
+
+typedef struct _REQUEST_PARAMS
+{
+    ULONG p1;
+
+    ULONG p2;
+
+    ULONG p3;
+
+    ULONG p4;
+
+} BUSDOG_REQUEST_PARAMS;
+
+#define BUSDOG_REQUEST_PARAMS_INIT(x) { \
+    (x)->p1 = 0; \
+    (x)->p2 = 0; \
+    (x)->p3 = 0; \
+    (x)->p4 = 0; \
+    }
+
+typedef enum _REQUEST_INTERNAL_DEVICE_CONTROL_TYPE
+{
+    BusDogUSB = 0x2000
+} BUSDOG_REQUEST_INTERNAL_DEVICE_CONTROL_TYPE;
+
+typedef enum _REQUEST_USB_DIRECTION
+{
+    BusDogUsbIn = 0x0,
+    BusDogUsbOut
+} BUSDOG_REQUEST_USB_DIRECTION;
 
 typedef struct
 {
@@ -106,6 +135,8 @@ typedef struct
     DWORD DeviceId;
 
     BUSDOG_REQUEST_TYPE Type;
+
+    BUSDOG_REQUEST_PARAMS Params;
 
     BUSDOG_TIMESTAMP Timestamp;
 

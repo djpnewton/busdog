@@ -75,6 +75,7 @@ __BusDogCreateTrace(
     PBUSDOG_FILTER_TRACE_FIFO_ITEM pTraceItem,
     ULONG DeviceId,
     BUSDOG_REQUEST_TYPE Type,
+    BUSDOG_REQUEST_PARAMS Params,
     PVOID TraceBuffer,
     ULONG BufferLength
     )
@@ -125,6 +126,8 @@ __BusDogCreateTrace(
 
     pTrace->Type = Type;
 
+    pTrace->Params = Params;
+
     pTrace->Timestamp = BusDogGetTimeStamp();
 
     pTrace->BufferSize = BufferLength;
@@ -141,6 +144,7 @@ BusDogAddTraceToFifo(
     WDFDEVICE device,
     ULONG DeviceId,
     BUSDOG_REQUEST_TYPE Type,
+    BUSDOG_REQUEST_PARAMS Params,
     PVOID TraceBuffer,
     ULONG BufferLength
     )
@@ -156,6 +160,7 @@ BusDogAddTraceToFifo(
             pTraceItem,
             DeviceId,
             Type,
+            Params,
             TraceBuffer,
             BufferLength);
 
