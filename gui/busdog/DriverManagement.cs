@@ -69,7 +69,8 @@ namespace busdog
             string mydir;
             if (ExtractDriverFiles(out mydir))
             {
-                Process p = Process.Start(Path.Combine(mydir, "dpinst.exe"), "/u busdog.inf /d");
+                string inffile = Path.Combine(mydir, "busdog.inf");
+                Process p = Process.Start(Path.Combine(mydir, "dpinst.exe"), string.Format("/u {0} /d", inffile));
                 p.WaitForExit();
                 if (Directory.Exists(mydir))
                     Directory.Delete(mydir, true);
