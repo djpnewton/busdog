@@ -18,6 +18,13 @@ echo +++++++++++++++++++++++++++++++++
 echo +++busdog filter driver built!+++
 echo +++++++++++++++++++++++++++++++++
 
+:: sign driver
+SignTool sign /v /s PrivateCertStore /n djpnewton(Test) /t http://timestamp.verisign.com/scripts/timestamp.dll filter\obj%BUILD_ALT_DIR%\%other_arch_spec%\busdog.sys
+if errorlevel 1 goto error
+echo +++++++++++++++++++++++++++++++++++++++
+echo +++busdog filter driver test signed!+++
+echo +++++++++++++++++++++++++++++++++++++++
+
 :: copy driver to busdog gui directory
 xcopy /Y filter\obj%BUILD_ALT_DIR%\%other_arch_spec%\busdog.sys gui\driverRes\bin
 if errorlevel 1 goto error
