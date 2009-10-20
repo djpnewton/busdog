@@ -19,7 +19,7 @@ echo +++busdog filter driver built!+++
 echo +++++++++++++++++++++++++++++++++
 
 :: sign driver
-SignTool sign /v /s PrivateCertStore /n djpnewton(Test) /t http://timestamp.verisign.com/scripts/timestamp.dll filter\obj%BUILD_ALT_DIR%\%other_arch_spec%\busdog.sys
+SignTool sign /f testcert.pfx /p test /t http://timestamp.verisign.com/scripts/timestamp.dll filter\obj%BUILD_ALT_DIR%\%other_arch_spec%\busdog.sys
 if errorlevel 1 goto error
 echo +++++++++++++++++++++++++++++++++++++++
 echo +++busdog filter driver test signed!+++
