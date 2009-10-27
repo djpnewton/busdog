@@ -13,6 +13,15 @@ namespace busdog
 {
     static class DriverManagement
     {
+        [DllImport("kernel32")]
+        public extern static IntPtr LoadLibrary(string libraryName);
+
+        [DllImport("kernel32")]
+        public extern static bool FreeLibrary(IntPtr hModule);
+
+        [DllImport("kernel32", CharSet = CharSet.Ansi)]
+        public extern static IntPtr GetProcAddress(IntPtr hMod, string procedureName);
+
         [DllImport("advapi32.dll", EntryPoint = "OpenSCManagerW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
         static extern IntPtr OpenSCManager(string machineName, string databaseName, uint dwAccess);
 
@@ -43,45 +52,152 @@ namespace busdog
             return false;
         }
 
-        public static bool InstallDriver(out bool needRestart)
+        delegate uint WdfCoinstallInvoker(
+            [MarshalAs(UnmanagedType.LPWStr)]
+            string infPath,
+            [MarshalAs(UnmanagedType.LPWStr)]
+            string infSectionName);
+
+        const string infFile = "busdog.inf";
+        const string sysFile = "busdog.sys";
+        const string dpinstFile = "dpinst.exe";
+        const string coinstFile = "WdfCoInstaller01009.dll";
+        const string wdfInfSection = "busdog.NT.Wdf";
+        const string wdfPreDeviceInstall = "WdfPreDeviceInstall";
+        const string wdfPostDeviceInstall = "WdfPostDeviceInstall";
+        const string wdfPreDeviceRemove = "WdfPreDeviceRemove";
+        const string wdfPostDeviceRemove = "WdfPostDeviceRemove";
+
+        private static IntPtr GetCoinstallerFuncs(string mydir, out IntPtr wdfPreDeviceInstallPtr, out IntPtr wdfPostDeviceInstallPtr, out IntPtr wdfPreDeviceRemovePtr, out IntPtr wdfPostDeviceRemovePtr)
         {
-            needRestart = false;
-            string mydir;
-            if (ExtractDriverFiles(out mydir))
-            {
-                Process p = Process.Start(Path.Combine(mydir, "dpinst.exe"), "/lm");
-                p.WaitForExit();
-                if (Directory.Exists(mydir))
-                    Directory.Delete(mydir, true);
-                if (((p.ExitCode >> 24) & 0x40) == 0x40)
-                    needRestart = true;
-                if (((p.ExitCode >> 24) & 0x80) == 0x80)
-                    return false;
-                return true;
-            }
-            else
-                return false;
+            // Get wdf coinstaller functions
+            IntPtr hModule = LoadLibrary(Path.Combine(mydir, coinstFile));
+            wdfPreDeviceInstallPtr = GetProcAddress(hModule, wdfPreDeviceInstall);
+            wdfPostDeviceInstallPtr = GetProcAddress(hModule, wdfPostDeviceInstall);
+            wdfPreDeviceRemovePtr = GetProcAddress(hModule, wdfPreDeviceRemove);
+            wdfPostDeviceRemovePtr = GetProcAddress(hModule, wdfPostDeviceRemove);
+            return hModule;
         }
 
-        public static bool UninstallDriver(out bool needRestart)
+        public static bool InstallDriver(out bool needRestart, out string failureReason)
         {
+            failureReason = null;
+            bool result = true;
             needRestart = false;
             string mydir;
             if (ExtractDriverFiles(out mydir))
             {
-                string inffile = Path.Combine(mydir, "busdog.inf");
-                Process p = Process.Start(Path.Combine(mydir, "dpinst.exe"), string.Format("/u \"{0}\" /d", inffile));
-                p.WaitForExit();
+                ulong wdfCallResult = 0;
+                IntPtr wdfPreDeviceInstallPtr;
+                IntPtr wdfPostDeviceInstallPtr;
+                IntPtr wdfPreDeviceRemovePtr;
+                IntPtr wdfPostDeviceRemovePtr;
+                IntPtr hModule = GetCoinstallerFuncs(mydir, out wdfPreDeviceInstallPtr, out wdfPostDeviceInstallPtr, out wdfPreDeviceRemovePtr, out wdfPostDeviceRemovePtr);
+                // call WdfPreDeviceInstall
+                WdfCoinstallInvoker preDevInst = (WdfCoinstallInvoker)Marshal.GetDelegateForFunctionPointer(wdfPreDeviceInstallPtr, typeof(WdfCoinstallInvoker));
+                wdfCallResult = preDevInst(Path.Combine(mydir, infFile), wdfInfSection);
+                if (wdfCallResult != 0)
+                {
+                    result = false;
+                    failureReason = string.Format("{0} result = 0x{1:X}", wdfPreDeviceInstall, wdfCallResult);
+                }
+                else
+                {
+                    // run dpinst
+                    Process p = Process.Start(Path.Combine(mydir, dpinstFile), "/lm /q");
+                    p.WaitForExit();
+                    if (((p.ExitCode >> 24) & 0x40) == 0x40)
+                        needRestart = true;
+                    if (((p.ExitCode >> 24) & 0x80) == 0x80)
+                    {
+                        result = false;
+                        failureReason = string.Format("DPInst result = 0x{0:X}", p.ExitCode);
+                    }
+                    else
+                    {
+                        // call WdfPostDeviceInstall
+                        WdfCoinstallInvoker postDevInst = (WdfCoinstallInvoker)Marshal.GetDelegateForFunctionPointer(wdfPostDeviceInstallPtr, typeof(WdfCoinstallInvoker));
+                        wdfCallResult = postDevInst(Path.Combine(mydir, infFile), wdfInfSection);
+                        if (wdfCallResult != 0)
+                        {
+                            result = false;
+                            failureReason = string.Format("{0} result = 0x{1:X}", wdfPostDeviceInstall, wdfCallResult);
+                        }
+                    }
+                }
+                // free coinstaller library
+                FreeLibrary(hModule);
+                // delete extracted files
                 if (Directory.Exists(mydir))
-                    Directory.Delete(mydir, true);
-                if (((p.ExitCode >> 24) & 0x40) == 0x40)
-                    needRestart = true;
-                if (((p.ExitCode >> 24) & 0x80) == 0x80)
-                    return false;
-                return true;
+                   Directory.Delete(mydir, true);
             }
             else
-                return false;
+            {
+                result = false;
+                failureReason = "ExtractDriverFiles failed";
+            }
+            return result;
+        }
+
+        public static bool UninstallDriver(out bool needRestart, out string failureReason)
+        {
+            failureReason = null;
+            ulong wdfCallResult = 0;
+            bool result = true;
+            needRestart = false;
+            string mydir;
+            if (ExtractDriverFiles(out mydir))
+            {
+                IntPtr wdfPreDeviceInstallPtr;
+                IntPtr wdfPostDeviceInstallPtr;
+                IntPtr wdfPreDeviceRemovePtr;
+                IntPtr wdfPostDeviceRemovePtr;
+                IntPtr hModule = GetCoinstallerFuncs(mydir, out wdfPreDeviceInstallPtr, out wdfPostDeviceInstallPtr, out wdfPreDeviceRemovePtr, out wdfPostDeviceRemovePtr);
+                // call WdfPreDeviceRemove
+                WdfCoinstallInvoker preDevRemove = (WdfCoinstallInvoker)Marshal.GetDelegateForFunctionPointer(wdfPreDeviceRemovePtr, typeof(WdfCoinstallInvoker));
+                wdfCallResult = preDevRemove(Path.Combine(mydir, infFile), wdfInfSection);
+                if (wdfCallResult != 0)
+                {
+                    result = false;
+                    failureReason = string.Format("{0} result = 0x{1:X}", wdfPreDeviceRemove, wdfCallResult);
+                }
+                else
+                {
+                    // run dpinst
+                    string inffile = Path.Combine(mydir, infFile);
+                    Process p = Process.Start(Path.Combine(mydir, dpinstFile), string.Format("/u \"{0}\" /d /q", inffile));
+                    p.WaitForExit();
+                    if (((p.ExitCode >> 24) & 0x40) == 0x40)
+                        needRestart = true;
+                    if (((p.ExitCode >> 24) & 0x80) == 0x80)
+                    {
+                        result = false;
+                        failureReason = string.Format("DPInst result = 0x{0:X}", p.ExitCode);
+                    }
+                    else
+                    {
+                        // call WdfPostDeviceRemove
+                        WdfCoinstallInvoker postDevRemove = (WdfCoinstallInvoker)Marshal.GetDelegateForFunctionPointer(wdfPostDeviceRemovePtr, typeof(WdfCoinstallInvoker));
+                        wdfCallResult = postDevRemove(Path.Combine(mydir, infFile), wdfInfSection);
+                        if (wdfCallResult != 0)
+                        {
+                            result = false;
+                            failureReason = string.Format("{0} result = 0x{1:X}", wdfPostDeviceRemove, wdfCallResult);
+                        }
+                    }
+                }
+                // free coinstaller library
+                FreeLibrary(hModule);
+                // delete extracted files
+                if (Directory.Exists(mydir))
+                    Directory.Delete(mydir, true);
+            }
+            else
+            {
+                result = false;
+                failureReason = "ExtractDriverFiles failed";
+            }
+            return result;
         }
 
         private static bool ExtractDriverFiles(out string mydir)
@@ -92,10 +208,10 @@ namespace busdog
             try
             {
                 Directory.CreateDirectory(mydir);
-                WriteDrverFile("busdog.sys", mydir);
-                WriteDrverFile("busdog.inf", mydir);
-                WriteDrverFile("WdfCoInstaller01009.dll", mydir);
-                WriteDrverFile("dpinst.exe", mydir);
+                WriteDrverFile(sysFile, mydir);
+                WriteDrverFile(infFile, mydir);
+                WriteDrverFile(coinstFile, mydir);
+                WriteDrverFile(dpinstFile, mydir);
             }
             catch
             {

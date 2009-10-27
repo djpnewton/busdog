@@ -247,7 +247,8 @@ namespace busdog
         private void InstallDriver()
         {
             bool needRestart;
-            if (DriverManagement.InstallDriver(out needRestart))
+            string failureReason;
+            if (DriverManagement.InstallDriver(out needRestart, out failureReason))
             {
                 if (needRestart)
                     MessageBox.Show("BusDog Filter Driver installed! Restart required to complete.",
@@ -257,13 +258,15 @@ namespace busdog
                         "Driver Installed");
             }
             else
-                MessageBox.Show("BusDog Filter Driver installation failed", "Driver Installation Failed");
+                MessageBox.Show(string.Format("BusDog Filter Driver installation failed ({0})", failureReason), 
+                    "Driver Installation Failed");
         }
 
         private void UninstallDriver()
         {
             bool needRestart;
-            if (DriverManagement.UninstallDriver(out needRestart))
+            string failureReason;
+            if (DriverManagement.UninstallDriver(out needRestart, out failureReason))
             {
                 if (needRestart)
                     MessageBox.Show("BusDog Filter Driver uninstalled! Restart required to complete.",
@@ -273,7 +276,8 @@ namespace busdog
                         "Driver Uninstalled");
             }
             else
-                MessageBox.Show("BusDog Filter Driver uninstallation failed", "Driver Uninstallation Failed");
+                MessageBox.Show(string.Format("BusDog Filter Driver uninstallation failed ({0})", failureReason), 
+                    "Driver Uninstallation Failed");
         }
 
         private void btnReinstall_Click(object sender, EventArgs e)

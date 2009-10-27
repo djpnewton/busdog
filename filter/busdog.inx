@@ -57,7 +57,10 @@ WdfCoinstaller$KMDFCOINSTALLERVERSION$.dll,,,2
 [SourceDisksFiles]
 WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll=99
 
-[DefaultInstall.NT.Wdf]
+[busdog.NT.Wdf]
+KmdfService = busdog, busdog_wdfsect
+
+[busdog_wdfsect]
 KmdfLibraryVersion = $KMDFVERSION$
 
 ;================================================================
