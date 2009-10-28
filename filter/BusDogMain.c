@@ -202,47 +202,6 @@ Return Value:
     //
     WdfFdoInitSetFilter(DeviceInit);
 
-#ifdef WDM_PREPROCESS
-
-    //
-    // Lets see if we can hook into some IRPs
-    //
-    status = WdfDeviceInitAssignWdmIrpPreprocessCallback(
-                                            DeviceInit,
-                                            BusDogWdmDeviceReadWrite,
-                                            IRP_MJ_READ,
-                                            NULL, // pointer minor function table
-                                            0); // number of entries in the table
-    if (!NT_SUCCESS(status)) {
-        BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfDeviceInitAssignWdmIrpPreprocessCallback failed with status 0x%x\n",
-                                status);
-
-        //
-        // Let us not fail AddDevice just because we weren't able to hook up
-        // the callback
-        //
-        status = STATUS_SUCCESS;
-    }
-
-    status = WdfDeviceInitAssignWdmIrpPreprocessCallback(
-                                            DeviceInit,
-                                            BusDogWdmDeviceReadWrite,
-                                            IRP_MJ_WRITE,
-                                            NULL, // pointer minor function table
-                                            0); // number of entries in the table
-    if (!NT_SUCCESS(status)) {
-        BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfDeviceInitAssignWdmIrpPreprocessCallback failed with status 0x%x\n",
-                                status);
-
-        //
-        // Let us not fail AddDevice just because we weren't able to hook up
-        // the callback
-        //
-        status = STATUS_SUCCESS;
-    }
-
-#endif
-
     //
     // Specify the size of device extension where we track per device
     // context.
@@ -289,8 +248,6 @@ Return Value:
     context->TargetToSendRequestsTo = WdfDeviceGetIoTarget(device);
     
 
-#ifndef WDM_PREPROCESS
-
     //
     // Now that this step is completed, we can create our default queue.
     //  This queue will allow us to pick off any I/O requests
@@ -331,8 +288,6 @@ Return Value:
         //
         status = STATUS_SUCCESS;
     }    
-
-#endif
 
     //
     // Add this device to the FilterDevice collection.
@@ -1010,78 +965,6 @@ Return Value:
 }
 
 
-#ifdef WDM_PREPROCESS
-
-NTSTATUS
-BusDogWdmDeviceReadWrite (
-    IN WDFDEVICE Device,
-    IN PIRP Irp
-    )
-{
-    PBUSDOG_CONTEXT         context = BusDogGetDeviceContext(Device);
-
-    if (BusDogFiltering && context->FilterEnabled)
-    {
-        PIO_STACK_LOCATION stack = IoGetCurrentIrpStackLocation(Irp);
-
-        if (stack->MajorFunction == IRP_MJ_READ)
-        {
-            BusDogPrint(BUSDOG_DEBUG_INFO, "%2d - IRP_MJ_READ, Length: %d\n", context->DeviceId, stack->Parameters.Read.Length);
-        }
-        else if (stack->MajorFunction == IRP_MJ_WRITE)
-        {
-            BusDogPrint(BUSDOG_DEBUG_INFO, "%2d - IRP_MJ_WRITE, Length: %d\n", context->DeviceId, stack->Parameters.Write.Length);
-        }
-
-        if (FlagOn(stack->DeviceObject->Flags, DO_BUFFERED_IO)) 
-        {
-            //buffer at Irp->AssociatedIrp.SystemBuffer
-            BusDogPrint(BUSDOG_DEBUG_INFO, "         DO_BUFFERED_IO - Irp->AssociatedIrp.SystemBuffer: %d\n", Irp->AssociatedIrp.SystemBuffer);
-        }
-        else if (FlagOn(stack->DeviceObject->Flags, DO_DIRECT_IO)) 
-        {
-            PVOID buffer;
-
-            // buffer at Irp->MdlAddress
-            BusDogPrint(BUSDOG_DEBUG_INFO, "         DO_DIRECT_IO - Irp->MdlAddress: %d\n", Irp->MdlAddress);
-
-            //         
-            // Map the physical pages described by the MDL into system space. 
-            // Note: double mapping the buffer this way causes lot of 
-            // system overhead for large size buffers. 
-            // 
-
-            buffer = MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority);
-
-            if (!buffer) 
-            {
-                //ntStatus = STATUS_INSUFFICIENT_RESOURCES;
-                //MmUnlockPages(mdl);
-                //IoFreeMdl(mdl);
-            }
-            else
-            {
-                // 
-                // Now you can safely read the data from the buffer.
-                //
-                BusDogPrint(BUSDOG_DEBUG_INFO, "         Data: ");
-                PrintChars(buffer, MmGetMdlByteCount(Irp->MdlAddress));
-            }
-
-        }
-        else 
-        {
-            // buffer at Irp->UserBuffer 
-            BusDogPrint(BUSDOG_DEBUG_INFO, "         Neither - Irp->UserBuffer: %d\n", Irp->UserBuffer);
-        }
-    }
-
-    IoSkipCurrentIrpStackLocation(Irp); 
-    return WdfDeviceWdmDispatchPreprocessedIrp(Device, Irp);
-}
-
-#else
-
 VOID
 BusDogIoRead(
     IN WDFQUEUE Queue,
@@ -1586,5 +1469,3 @@ BusDogProcessInternalDeviceControl(
     }
 
 }
-
-#endif

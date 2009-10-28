@@ -99,16 +99,6 @@ BusDogDeleteControlDevice(
     WDFDEVICE Device
     );
 
-#ifdef WDM_PREPROCESS
-
-NTSTATUS
-BusDogWdmDeviceReadWrite (
-    IN WDFDEVICE Device,
-    IN PIRP Irp
-    );
-
-#else
-
 VOID
 BusDogIoRead(
     IN WDFQUEUE Queue,
@@ -170,7 +160,6 @@ BusDogProcessInternalDeviceControl(
     IN ULONG  IoControlCode,
     IN BOOLEAN bCompletion,
     OUT BOOLEAN* bRead);
-#endif
 
 //
 // BusDogGeneric.c

@@ -3,6 +3,8 @@
 	* make_package.bat, gui/driverRes/build.xml: add debug symbols to release
 	packages
 
+	* filter/BusDogMain.c: removed obsolete WDM preprocess code
+
 2009-10-27  Daniel Newton  <djpnewton@gmail.com>
 
 	* filter/busdog.inx: fix wdf section in inf
