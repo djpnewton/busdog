@@ -28,6 +28,8 @@ echo +++++++++++++++++++++++++++++++++++++++
 :: copy driver to busdog gui directory
 xcopy /Y filter\obj%BUILD_ALT_DIR%\%other_arch_spec%\busdog.sys gui\driverRes\bin
 if errorlevel 1 goto error
+xcopy /Y filter\obj%BUILD_ALT_DIR%\%other_arch_spec%\busdog.pdb gui\driverRes\bin
+if errorlevel 1 goto error
 xcopy /Y filter\obj%BUILD_ALT_DIR%\%other_arch_spec%\busdog.inf gui\driverRes\bin
 if errorlevel 1 goto error
 xcopy /Y %BASEDIR%\redist\wdf\%_BUILDARCH%\wdfcoinstaller?????.dll gui\driverRes\bin
