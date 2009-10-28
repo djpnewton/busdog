@@ -171,29 +171,12 @@ Return Value:
     PBUSDOG_CONTEXT         context;
     NTSTATUS                status;
     WDFDEVICE               device;
-    ULONG                   serialNo;
     ULONG                   returnSize;
     WDF_IO_QUEUE_CONFIG     ioQueueConfig;
 
     PAGED_CODE ();
 
     UNREFERENCED_PARAMETER(Driver);
-
-    //
-    // Get some property of the device you are about to attach and check
-    // to see if that's the one you are interested. For demonstration
-    // we will get the UINumber of the device. The bus driver reports the
-    // serial number as the UINumber.
-    //
-    status = WdfFdoInitQueryProperty(DeviceInit,
-                                  DevicePropertyUINumber,
-                                  sizeof(serialNo),
-                                  &serialNo,
-                                  &returnSize);
-    if(!NT_SUCCESS(status)){
-        BusDogPrint(BUSDOG_DEBUG_ERROR, "Failed to get the property of PDO: 0x%p\n", DeviceInit);
-
-    }
 
     //
     // Tell the framework that you are filter driver. Framework
@@ -223,8 +206,10 @@ Return Value:
     // appropriate flags and attributes.
     //
     status = WdfDeviceCreate(&DeviceInit, &deviceAttributes, &device);
-    if (!NT_SUCCESS(status)) {
+    if (!NT_SUCCESS(status)) 
+    {
         BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfDeviceCreate failed with status code 0x%x\n", status);
+
         return status;
     }
 
@@ -238,7 +223,6 @@ Return Value:
     // Initialize our context
     //
     context->MagicNumber = DEVICE_CONTEXT_MAGIC;
-    context->SerialNo = serialNo;
     context->HasDeviceId = FALSE;
     context->DeviceId = -1;
     context->FilterEnabled = FALSE;
@@ -298,7 +282,8 @@ Return Value:
     // it when you call WdfCollectionRemove.
     //
     status = WdfCollectionAdd(BusDogDeviceCollection, device);
-    if (!NT_SUCCESS(status)) {
+    if (!NT_SUCCESS(status)) 
+    {
         BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfCollectionAdd failed with status code 0x%x\n", status);
     }
     WdfWaitLockRelease(BusDogDeviceCollectionLock);
@@ -308,7 +293,8 @@ Return Value:
     //
 
     status = BusDogCreateControlDevice(device);
-    if (!NT_SUCCESS(status)) {
+    if (!NT_SUCCESS(status)) 
+    {
         BusDogPrint(BUSDOG_DEBUG_ERROR, "BusDogCreateControlDevice failed with status 0x%x\n",
                                 status);
         //
