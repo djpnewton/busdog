@@ -5,6 +5,10 @@
 
 	* filter/BusDogMain.c: removed obsolete WDM preprocess code
 
+	* filter/busdog.inx:
+	* gui/busdog/Properties/AssemblyInfo.cs:
+	  Updated version to 0.2
+
 2009-10-27  Daniel Newton  <djpnewton@gmail.com>
 
 	* filter/busdog.inx: fix wdf section in inf
