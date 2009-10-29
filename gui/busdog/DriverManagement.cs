@@ -68,14 +68,24 @@ namespace busdog
         const string wdfPreDeviceRemove = "WdfPreDeviceRemove";
         const string wdfPostDeviceRemove = "WdfPostDeviceRemove";
 
-        private static IntPtr GetCoinstallerFuncs(string mydir, out IntPtr wdfPreDeviceInstallPtr, out IntPtr wdfPostDeviceInstallPtr, out IntPtr wdfPreDeviceRemovePtr, out IntPtr wdfPostDeviceRemovePtr)
+        private static IntPtr GetCoinstallerFuncs(string mydir, out IntPtr wdfPreDeviceInstallPtr, out IntPtr wdfPostDeviceInstallPtr, out IntPtr wdfPreDeviceRemovePtr, out IntPtr wdfPostDeviceRemovePtr, out bool procAddressFailure)
         {
+            procAddressFailure = false;
             // Get wdf coinstaller functions
             IntPtr hModule = LoadLibrary(Path.Combine(mydir, coinstFile));
             wdfPreDeviceInstallPtr = GetProcAddress(hModule, wdfPreDeviceInstall);
             wdfPostDeviceInstallPtr = GetProcAddress(hModule, wdfPostDeviceInstall);
             wdfPreDeviceRemovePtr = GetProcAddress(hModule, wdfPreDeviceRemove);
             wdfPostDeviceRemovePtr = GetProcAddress(hModule, wdfPostDeviceRemove);
+
+            if (wdfPreDeviceInstallPtr.ToInt64() == 0 ||
+                wdfPostDeviceInstallPtr.ToInt64() == 0 ||
+                wdfPreDeviceRemovePtr.ToInt64() == 0 ||
+                wdfPostDeviceRemovePtr.ToInt64() == 0)
+            {
+                procAddressFailure = true;
+            }
+
             return hModule;
         }
 
@@ -92,38 +102,47 @@ namespace busdog
                 IntPtr wdfPostDeviceInstallPtr;
                 IntPtr wdfPreDeviceRemovePtr;
                 IntPtr wdfPostDeviceRemovePtr;
-                IntPtr hModule = GetCoinstallerFuncs(mydir, out wdfPreDeviceInstallPtr, out wdfPostDeviceInstallPtr, out wdfPreDeviceRemovePtr, out wdfPostDeviceRemovePtr);
-                // call WdfPreDeviceInstall
-                WdfCoinstallInvoker preDevInst = (WdfCoinstallInvoker)Marshal.GetDelegateForFunctionPointer(wdfPreDeviceInstallPtr, typeof(WdfCoinstallInvoker));
-                wdfCallResult = preDevInst(Path.Combine(mydir, infFile), wdfInfSection);
-                if (wdfCallResult != 0)
+                bool procAddressFailure;
+                IntPtr hModule = GetCoinstallerFuncs(mydir, out wdfPreDeviceInstallPtr, out wdfPostDeviceInstallPtr, out wdfPreDeviceRemovePtr, out wdfPostDeviceRemovePtr, out procAddressFailure);
+                if (!procAddressFailure)
                 {
-                    result = false;
-                    failureReason = string.Format("{0} result = 0x{1:X}", wdfPreDeviceInstall, wdfCallResult);
-                }
-                else
-                {
-                    // run dpinst
-                    Process p = Process.Start(Path.Combine(mydir, dpinstFile), "/lm /q");
-                    p.WaitForExit();
-                    if (((p.ExitCode >> 24) & 0x40) == 0x40)
-                        needRestart = true;
-                    if (((p.ExitCode >> 24) & 0x80) == 0x80)
+                    // call WdfPreDeviceInstall
+                    WdfCoinstallInvoker preDevInst = (WdfCoinstallInvoker)Marshal.GetDelegateForFunctionPointer(wdfPreDeviceInstallPtr, typeof(WdfCoinstallInvoker));
+                    wdfCallResult = preDevInst(Path.Combine(mydir, infFile), wdfInfSection);
+                    if (wdfCallResult != 0)
                     {
                         result = false;
-                        failureReason = string.Format("DPInst result = 0x{0:X}", p.ExitCode);
+                        failureReason = string.Format("{0} result = 0x{1:X}", wdfPreDeviceInstall, wdfCallResult);
                     }
                     else
                     {
-                        // call WdfPostDeviceInstall
-                        WdfCoinstallInvoker postDevInst = (WdfCoinstallInvoker)Marshal.GetDelegateForFunctionPointer(wdfPostDeviceInstallPtr, typeof(WdfCoinstallInvoker));
-                        wdfCallResult = postDevInst(Path.Combine(mydir, infFile), wdfInfSection);
-                        if (wdfCallResult != 0)
+                        // run dpinst
+                        Process p = Process.Start(Path.Combine(mydir, dpinstFile), "/lm");
+                        p.WaitForExit();
+                        if (((p.ExitCode >> 24) & 0x40) == 0x40)
+                            needRestart = true;
+                        if (((p.ExitCode >> 24) & 0x80) == 0x80)
                         {
                             result = false;
-                            failureReason = string.Format("{0} result = 0x{1:X}", wdfPostDeviceInstall, wdfCallResult);
+                            failureReason = string.Format("DPInst result = 0x{0:X}", p.ExitCode);
+                        }
+                        else
+                        {
+                            // call WdfPostDeviceInstall
+                            WdfCoinstallInvoker postDevInst = (WdfCoinstallInvoker)Marshal.GetDelegateForFunctionPointer(wdfPostDeviceInstallPtr, typeof(WdfCoinstallInvoker));
+                            wdfCallResult = postDevInst(Path.Combine(mydir, infFile), wdfInfSection);
+                            if (wdfCallResult != 0)
+                            {
+                                result = false;
+                                failureReason = string.Format("{0} result = 0x{1:X}", wdfPostDeviceInstall, wdfCallResult);
+                            }
                         }
                     }
+                }
+                else
+                {
+                    result = false;
+                    failureReason = "Error getting WDF coinstaller function addresses";
                 }
                 // free coinstaller library
                 FreeLibrary(hModule);
@@ -152,39 +171,48 @@ namespace busdog
                 IntPtr wdfPostDeviceInstallPtr;
                 IntPtr wdfPreDeviceRemovePtr;
                 IntPtr wdfPostDeviceRemovePtr;
-                IntPtr hModule = GetCoinstallerFuncs(mydir, out wdfPreDeviceInstallPtr, out wdfPostDeviceInstallPtr, out wdfPreDeviceRemovePtr, out wdfPostDeviceRemovePtr);
-                // call WdfPreDeviceRemove
-                WdfCoinstallInvoker preDevRemove = (WdfCoinstallInvoker)Marshal.GetDelegateForFunctionPointer(wdfPreDeviceRemovePtr, typeof(WdfCoinstallInvoker));
-                wdfCallResult = preDevRemove(Path.Combine(mydir, infFile), wdfInfSection);
-                if (wdfCallResult != 0)
+                bool procAddressFailure;
+                IntPtr hModule = GetCoinstallerFuncs(mydir, out wdfPreDeviceInstallPtr, out wdfPostDeviceInstallPtr, out wdfPreDeviceRemovePtr, out wdfPostDeviceRemovePtr, out procAddressFailure);
+                if (!procAddressFailure)
                 {
-                    result = false;
-                    failureReason = string.Format("{0} result = 0x{1:X}", wdfPreDeviceRemove, wdfCallResult);
-                }
-                else
-                {
-                    // run dpinst
-                    string inffile = Path.Combine(mydir, infFile);
-                    Process p = Process.Start(Path.Combine(mydir, dpinstFile), string.Format("/u \"{0}\" /d /q", inffile));
-                    p.WaitForExit();
-                    if (((p.ExitCode >> 24) & 0x40) == 0x40)
-                        needRestart = true;
-                    if (((p.ExitCode >> 24) & 0x80) == 0x80)
+                    // call WdfPreDeviceRemove
+                    WdfCoinstallInvoker preDevRemove = (WdfCoinstallInvoker)Marshal.GetDelegateForFunctionPointer(wdfPreDeviceRemovePtr, typeof(WdfCoinstallInvoker));
+                    wdfCallResult = preDevRemove(Path.Combine(mydir, infFile), wdfInfSection);
+                    if (wdfCallResult != 0)
                     {
                         result = false;
-                        failureReason = string.Format("DPInst result = 0x{0:X}", p.ExitCode);
+                        failureReason = string.Format("{0} result = 0x{1:X}", wdfPreDeviceRemove, wdfCallResult);
                     }
                     else
                     {
-                        // call WdfPostDeviceRemove
-                        WdfCoinstallInvoker postDevRemove = (WdfCoinstallInvoker)Marshal.GetDelegateForFunctionPointer(wdfPostDeviceRemovePtr, typeof(WdfCoinstallInvoker));
-                        wdfCallResult = postDevRemove(Path.Combine(mydir, infFile), wdfInfSection);
-                        if (wdfCallResult != 0)
+                        // run dpinst
+                        string inffile = Path.Combine(mydir, infFile);
+                        Process p = Process.Start(Path.Combine(mydir, dpinstFile), string.Format("/u \"{0}\" /d /q", inffile));
+                        p.WaitForExit();
+                        if (((p.ExitCode >> 24) & 0x40) == 0x40)
+                            needRestart = true;
+                        if (((p.ExitCode >> 24) & 0x80) == 0x80)
                         {
                             result = false;
-                            failureReason = string.Format("{0} result = 0x{1:X}", wdfPostDeviceRemove, wdfCallResult);
+                            failureReason = string.Format("DPInst result = 0x{0:X}", p.ExitCode);
+                        }
+                        else
+                        {
+                            // call WdfPostDeviceRemove
+                            WdfCoinstallInvoker postDevRemove = (WdfCoinstallInvoker)Marshal.GetDelegateForFunctionPointer(wdfPostDeviceRemovePtr, typeof(WdfCoinstallInvoker));
+                            wdfCallResult = postDevRemove(Path.Combine(mydir, infFile), wdfInfSection);
+                            if (wdfCallResult != 0)
+                            {
+                                result = false;
+                                failureReason = string.Format("{0} result = 0x{1:X}", wdfPostDeviceRemove, wdfCallResult);
+                            }
                         }
                     }
+                }
+                else
+                {
+                    result = false;
+                    failureReason = "Error getting WDF coinstaller function addresses";
                 }
                 // free coinstaller library
                 FreeLibrary(hModule);
