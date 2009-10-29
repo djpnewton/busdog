@@ -38,11 +38,11 @@ xcopy /Y %BASEDIR%\redist\DIFx\dpinst\MultiLin\%_BUILDARCH%\dpinst.exe gui\drive
 if errorlevel 1 goto error
 
 ::visual studio environment
-::if "%1"=="64" (
-  ::  call "C:\Program Files\Microsoft Visual Studio 9.0\VC\vcvarsall.bat" x86_amd64
-::) else (
+if "%1"=="64" (
+    call "C:\Program Files\Microsoft Visual Studio 9.0\VC\vcvarsall.bat" x86_amd64
+) else (
     call "C:\Program Files\Microsoft Visual Studio 9.0\VC\vcvarsall.bat" x86
-::)
+)
 cd %~dp0
 
 :: build busdog gui

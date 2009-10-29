@@ -30,6 +30,8 @@
 
 typedef struct _BUSDOG_CONTEXT {
 
+    ULONG       SerialNo;
+
     ULONG       MagicNumber;
 
     BOOLEAN     HasDeviceId;

@@ -193,7 +193,7 @@
             this.btnClearTraces});
             this.tsTrace.Location = new System.Drawing.Point(3, 0);
             this.tsTrace.Name = "tsTrace";
-            this.tsTrace.Size = new System.Drawing.Size(114, 25);
+            this.tsTrace.Size = new System.Drawing.Size(83, 25);
             this.tsTrace.TabIndex = 4;
             this.tsTrace.Text = "tsTrace";
             // 
@@ -389,6 +389,7 @@
             this.Controls.Add(this.tabControl);
             this.Name = "MainForm";
             this.Text = "BusDog";
+            this.Load += new System.EventHandler(this.MainForm_Load);
             this.tabControl.ResumeLayout(false);
             this.tabDevices.ResumeLayout(false);
             this.tabTrace.ResumeLayout(false);
