@@ -8,6 +8,12 @@ using System.Windows.Forms;
 
 namespace busdog
 {
+    enum StartupActions
+    {
+        InstallDriver = 1,
+        UninstallDriver = 2
+    }
+
     public partial class MainForm : Form
     {
         Native native = new Native();
@@ -19,11 +25,49 @@ namespace busdog
         {
             InitializeComponent();
 
-            CheckDriverInstallation();
+            if (!VistaSecurity.IsAdmin())
+            {
+                VistaSecurity.AddShieldToButton(btnReinstall);
+                VistaSecurity.AddShieldToButton(btnUninstall);
+            }
+            else
+                this.Text += " (Elevated)";
+        }
+
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+            if (!ProcessCommandLine())
+                CheckDriverInstallation();
 
             devManage.RegisterForDeviceNotifications(Handle, ref devNotificationsHandle);
 
             EnumFilterDevices();
+        }
+
+        private bool ProcessCommandLine()
+        {
+            foreach (string arg in Environment.GetCommandLineArgs())
+            {
+                if (arg == StartupActions.InstallDriver.ToString())
+                {
+                    if (VistaSecurity.IsAdmin())
+                        InstallDriver();
+                    else
+                        MessageBox.Show("Could not install driver as user is not an Admin",
+                            "Startup Action Install Driver failed");
+                    return true;
+                }
+                else if (arg == StartupActions.UninstallDriver.ToString())
+                {
+                    if (VistaSecurity.IsAdmin())
+                        UninstallDriver();
+                    else
+                        MessageBox.Show("Could not uninstall driver as user is not an Admin",
+                            "Startup Action Uninstall Driver failed");
+                    return true;
+                }
+            }
+            return false;
         }
 
         private void EnumFilterDevices()
@@ -238,7 +282,10 @@ namespace busdog
                         "Driver Not Installed",
                         MessageBoxButtons.YesNo) == DialogResult.Yes)
                     {
-                        InstallDriver();
+                        if (VistaSecurity.IsAdmin())
+                            InstallDriver();
+                        else
+                            VistaSecurity.RestartElevated(StartupActions.InstallDriver.ToString());
                     }
                 }
             }
@@ -282,12 +329,26 @@ namespace busdog
 
         private void btnReinstall_Click(object sender, EventArgs e)
         {
-            InstallDriver();
+            if (VistaSecurity.IsAdmin())
+            {
+                InstallDriver();
+            }
+            else
+            {
+                VistaSecurity.RestartElevated(StartupActions.InstallDriver.ToString());
+            } 
         }
 
         private void btnUninstall_Click(object sender, EventArgs e)
         {
-            UninstallDriver();
+            if (VistaSecurity.IsAdmin())
+            {
+                UninstallDriver();
+            }
+            else
+            {
+                VistaSecurity.RestartElevated(StartupActions.UninstallDriver.ToString());
+            } 
         }
 
         private void cbTraceListColumn_CheckedChanged(object sender, EventArgs e)
