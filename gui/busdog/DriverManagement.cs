@@ -117,7 +117,7 @@ namespace busdog
                     else
                     {
                         // run dpinst
-                        Process p = Process.Start(Path.Combine(mydir, dpinstFile), "/lm");
+                        Process p = Process.Start(Path.Combine(mydir, dpinstFile), "/lm /q");
                         p.WaitForExit();
                         if (((p.ExitCode >> 24) & 0x40) == 0x40)
                             needRestart = true;
