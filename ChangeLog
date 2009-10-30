@@ -1,3 +1,9 @@
+2009-10-29  Daniel Newton  <djpnewton@gmail.com>
+
+	* gui/busdog/MainForm.cs:
+	* gui/busdog/VistaSecurity.cs: Added UAC elevation to driver
+	install/uninstall functions
+
 2009-10-28  Daniel Newton  <djpnewton@gmail.com>
 
 	* make_package.bat, gui/driverRes/build.xml: add debug symbols to release
