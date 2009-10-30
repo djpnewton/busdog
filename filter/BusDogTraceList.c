@@ -132,9 +132,13 @@ __BusDogCreateTrace(
 
     pTrace->BufferSize = BufferLength;
 
-    RtlCopyMemory((PCHAR)pTrace + sizeof(BUSDOG_FILTER_TRACE),
-            TraceBuffer,
-            BufferLength);
+    // Some traces might have no buffer (eg usb bus reset event)
+    if (BufferLength > 0)
+    {
+        RtlCopyMemory((PCHAR)pTrace + sizeof(BUSDOG_FILTER_TRACE),
+                TraceBuffer,
+                BufferLength);
+    }
 
     return pTraceItem;
 }

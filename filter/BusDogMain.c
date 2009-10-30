@@ -1281,14 +1281,78 @@ BusDogIoInternalDeviceControlComplete(
 }
 
 VOID
+__BusDogProcessUrbTransfer(
+    IN WDFDEVICE Device,
+    IN PBUSDOG_CONTEXT Context,
+    IN PURB pUrb,
+    IN PVOID pTransferBuffer,
+    IN PMDL pTransferBufferMDL,
+    IN ULONG TransferBufferLength,
+    IN BOOLEAN bCompletion,
+    IN BOOLEAN bRead
+    )
+{
+    //
+    // If we have an urb we want with a transfer buffer (bulk, interupt and control) then lets process it
+    //
+
+    BusDogPrint(BUSDOG_DEBUG_INFO, "        TransferBufferLength: %d\n", TransferBufferLength);
+    BusDogPrint(BUSDOG_DEBUG_INFO, "        In/Out: %s, MDL: %d\n", bRead ? "in" : "out", pTransferBufferMDL != NULL);
+
+    if (bCompletion && bRead || !bCompletion && !bRead)
+    {
+        BUSDOG_REQUEST_PARAMS params;
+        BUSDOG_REQUEST_PARAMS_INIT(&params);
+
+        params.p1 = BusDogUSBSubmitURB;
+        params.p2 = bRead ? BusDogUsbIn : BusDogUsbOut;
+        params.p3 = pUrb->UrbHeader.Function;
+
+        BusDogPrint(BUSDOG_DEBUG_INFO, "        Data: ");
+
+        if (pTransferBuffer != NULL)
+        {
+            PrintChars((PCHAR)pTransferBuffer, TransferBufferLength);
+
+            BusDogAddTraceToFifo(Device,
+                    Context->DeviceId, 
+                    BusDogInternalDeviceControlRequest, 
+                    params,
+                    pTransferBuffer, 
+                    TransferBufferLength);
+        }
+        else if (pTransferBufferMDL != NULL)
+        {
+            PCHAR pMDLBuf = (PCHAR)MmGetSystemAddressForMdlSafe(pTransferBufferMDL, NormalPagePriority);
+
+            PrintChars(pMDLBuf, TransferBufferLength);
+
+            BusDogAddTraceToFifo(Device,
+                    Context->DeviceId, 
+                    BusDogInternalDeviceControlRequest, 
+                    params,
+                    pMDLBuf, 
+                    TransferBufferLength);
+        }
+        else
+        {
+            BusDogPrint(BUSDOG_DEBUG_ERROR, "Buffer error!\n");
+        }
+    }
+}
+
+VOID
 BusDogProcessInternalDeviceControl(
     IN WDFDEVICE Device,
     IN PBUSDOG_CONTEXT Context,
     IN WDFREQUEST  Request,
     IN ULONG  IoControlCode,
     IN BOOLEAN bCompletion,
-    OUT BOOLEAN* bRead)
+    OUT BOOLEAN* bRead
+    )
 {
+    *bRead = FALSE;
+
     if (BusDogFiltering && Context->FilterEnabled)
     {
         if (bCompletion)
@@ -1305,10 +1369,6 @@ BusDogProcessInternalDeviceControl(
             case IOCTL_INTERNAL_USB_SUBMIT_URB:
             {
                 PURB pUrb;
-                PVOID pTransferBuffer = NULL;
-                PMDL pTransferBufferMDL = NULL;
-                ULONG TransferBufferLength = 0;
-                BOOLEAN urbHandled = TRUE;
 
                 BusDogPrint(BUSDOG_DEBUG_INFO, "    IOCTL_INTERNAL_USB_SUBMIT_URB\n");
                 
@@ -1327,9 +1387,15 @@ BusDogProcessInternalDeviceControl(
 
                         BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_BULK_OR_INTERRUPT_TRANSFER\n");
 
-                        pTransferBuffer = pTransfer->TransferBuffer;
-                        pTransferBufferMDL = pTransfer->TransferBufferMDL;
-                        TransferBufferLength = pTransfer->TransferBufferLength;
+                        __BusDogProcessUrbTransfer(
+                                Device,
+                                Context,
+                                pUrb,
+                                pTransfer->TransferBuffer,
+                                pTransfer->TransferBufferMDL,
+                                pTransfer->TransferBufferLength,
+                                bCompletion,
+                                *bRead);        
 
                         break;
                     }
@@ -1340,9 +1406,15 @@ BusDogProcessInternalDeviceControl(
 
                         BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_CONTROL_TRANSFER\n");
 
-                        pTransferBuffer = pTransfer->TransferBuffer;
-                        pTransferBufferMDL = pTransfer->TransferBufferMDL;
-                        TransferBufferLength = pTransfer->TransferBufferLength;
+                        __BusDogProcessUrbTransfer(
+                                Device,
+                                Context,
+                                pUrb,
+                                pTransfer->TransferBuffer,
+                                pTransfer->TransferBufferMDL,
+                                pTransfer->TransferBufferLength,
+                                bCompletion,
+                                *bRead);        
 
                         break;
                     }
@@ -1386,68 +1458,78 @@ BusDogProcessInternalDeviceControl(
                                 break;
                         }
 
-                        pTransferBuffer = pTransfer->TransferBuffer;
-                        pTransferBufferMDL = pTransfer->TransferBufferMDL;
-                        TransferBufferLength = pTransfer->TransferBufferLength;
+                        __BusDogProcessUrbTransfer(
+                                Device,
+                                Context,
+                                pUrb,
+                                pTransfer->TransferBuffer,
+                                pTransfer->TransferBufferMDL,
+                                pTransfer->TransferBufferLength,
+                                bCompletion,
+                                *bRead);        
+
+                        break;
+                    }
+                    case URB_FUNCTION_ABORT_PIPE:
+                    case URB_FUNCTION_RESET_PIPE:
+                    case URB_FUNCTION_SYNC_RESET_PIPE:
+                    case URB_FUNCTION_SYNC_CLEAR_STALL:
+                    {
+                        BUSDOG_REQUEST_PARAMS params;
+                        BUSDOG_REQUEST_PARAMS_INIT(&params);
+
+                        switch (pUrb->UrbHeader.Function)
+                        {
+                            case URB_FUNCTION_ABORT_PIPE:
+                                BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_ABORT_PIPE\n");
+                                break;
+                            case URB_FUNCTION_RESET_PIPE:
+                                BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_RESET_PIPE\n");
+                                break;
+                            case URB_FUNCTION_SYNC_RESET_PIPE:
+                                BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_SYNC_RESET_PIPE\n");
+                                break;
+                            case URB_FUNCTION_SYNC_CLEAR_STALL:
+                                BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_SYNC_CLEAR_STALL\n");
+                                break;
+                        }
+
+                        params.p1 = BusDogUSBSubmitURB;
+                        params.p3 = pUrb->UrbHeader.Function;
+
+                        BusDogAddTraceToFifo(Device,
+                                Context->DeviceId, 
+                                BusDogInternalDeviceControlRequest, 
+                                params,
+                                NULL, 
+                                0);
 
                         break;
                     }
                     default:
                         BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION: %d\n", pUrb->UrbHeader.Function);
-                        urbHandled = FALSE;
                         break;
                 }
 
-                //
-                // If we have an urb we want (bulk, interupt and control) then lets process it
-                //
-                
-                if (urbHandled)
-                {
-                    BusDogPrint(BUSDOG_DEBUG_INFO, "        TransferBufferLength: %d\n", TransferBufferLength);
-                    BusDogPrint(BUSDOG_DEBUG_INFO, "        R/W: %s, MDL: %d\n", *bRead ? "read" : "write", pTransferBufferMDL != NULL);
+                break;
+            }
 
-                    if (bCompletion && *bRead || !bCompletion && !*bRead)
-                    {
-                        BUSDOG_REQUEST_PARAMS params;
-                        BUSDOG_REQUEST_PARAMS_INIT(&params);
+            case IOCTL_INTERNAL_USB_RESET_PORT:
+            {
+                BUSDOG_REQUEST_PARAMS params;
+                BUSDOG_REQUEST_PARAMS_INIT(&params);
 
-                        params.p1 = BusDogUSB;
-                        params.p2 = *bRead ? BusDogUsbIn : BusDogUsbOut;
-                        params.p3 = pUrb->UrbHeader.Function;
+                params.p1 = BusDogUSBResetPort;
 
-                        BusDogPrint(BUSDOG_DEBUG_INFO, "        Data: ");
+                BusDogPrint(BUSDOG_DEBUG_INFO, "    IOCTL_INTERNAL_USB_RESET_PORT\n");
 
-                        if (pTransferBuffer != NULL)
-                        {
-                            PrintChars((PCHAR)pTransferBuffer, TransferBufferLength);
+                BusDogAddTraceToFifo(Device,
+                        Context->DeviceId, 
+                        BusDogInternalDeviceControlRequest, 
+                        params,
+                        NULL, 
+                        0);
 
-                            BusDogAddTraceToFifo(Device,
-                                    Context->DeviceId, 
-                                    BusDogInternalDeviceControlRequest, 
-                                    params,
-                                    pTransferBuffer, 
-                                    TransferBufferLength);
-                        }
-                        else if (pTransferBufferMDL != NULL)
-                        {
-                            PCHAR pMDLBuf = (PCHAR)MmGetSystemAddressForMdlSafe(pTransferBufferMDL, NormalPagePriority);
-
-                            PrintChars(pMDLBuf, TransferBufferLength);
-
-                            BusDogAddTraceToFifo(Device,
-                                    Context->DeviceId, 
-                                    BusDogInternalDeviceControlRequest, 
-                                    params,
-                                    pMDLBuf, 
-                                    TransferBufferLength);
-                        }
-                        else
-                        {
-                            BusDogPrint(BUSDOG_DEBUG_ERROR, "Buffer error!\n");
-                        }
-                    }
-                }
                 break;
             }
         }

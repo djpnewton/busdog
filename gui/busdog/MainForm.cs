@@ -162,7 +162,10 @@ namespace busdog
                             item.SubItems.Add(filterTrace.GetTimestampDelta(prevTrace).ToString());
                             break;
                         case 3:
-                            item.SubItems.Add(filterTrace.Buffer.Length.ToString());
+                            if (filterTrace.Buffer != null)
+                                item.SubItems.Add(filterTrace.Buffer.Length.ToString());
+                            else
+                                item.SubItems.Add(Convert.ToString(0));
                             break;
                         case 4:
                             item.SubItems.Add(filterTrace.BufToHex());

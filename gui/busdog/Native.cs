@@ -47,7 +47,8 @@ namespace busdog
 
     public enum BUSDOG_REQUEST_INTERNAL_DEVICE_CONTROL_TYPE
     {
-        BusDogUSB = 0x2000
+        BusDogUSBSubmitURB = 0x2000,
+        BusDogUSBResetPort
     };
 
     public enum BUSDOG_REQUEST_USB_DIRECTION
@@ -79,6 +80,12 @@ namespace busdog
         
     public struct FilterTrace
     {
+        // URB function consts
+        const int URB_FUNCTION_ABORT_PIPE = 0x0002;
+        const int URB_FUNCTION_RESET_PIPE = 0x001E;
+        const int URB_FUNCTION_SYNC_RESET_PIPE = 0x0030;
+        const int URB_FUNCTION_SYNC_CLEAR_STALL = 0x0031;
+
         public uint  DeviceId;
         public BUSDOG_REQUEST_TYPE Type;
         public BUSDOG_REQUEST_PARAMS Params;
@@ -102,13 +109,27 @@ namespace busdog
                 case BUSDOG_REQUEST_TYPE.BusDogWriteRequest:
                     return "W";
                 case BUSDOG_REQUEST_TYPE.BusDogInternalDeviceControlRequest:
-                    if ((BUSDOG_REQUEST_INTERNAL_DEVICE_CONTROL_TYPE)Params.p1 == BUSDOG_REQUEST_INTERNAL_DEVICE_CONTROL_TYPE.BusDogUSB)
+                    switch ((BUSDOG_REQUEST_INTERNAL_DEVICE_CONTROL_TYPE)Params.p1)
                     {
-                        if ((BUSDOG_REQUEST_USB_DIRECTION)Params.p2 == BUSDOG_REQUEST_USB_DIRECTION.BusDogUsbIn)
-                            return string.Format("In  (USB URB Function: {0})", Params.p3);
-                        else if ((BUSDOG_REQUEST_USB_DIRECTION)Params.p2 == BUSDOG_REQUEST_USB_DIRECTION.BusDogUsbOut)
-                            return string.Format("Out (USB URB Function: {0})", Params.p3);;
-                        return string.Format("USB? (p2: {0}, p3: {1})", Params.p2, Params.p3);
+                        case BUSDOG_REQUEST_INTERNAL_DEVICE_CONTROL_TYPE.BusDogUSBSubmitURB:
+                            switch (Params.p3)
+                            {
+                                case URB_FUNCTION_ABORT_PIPE:
+                                    return "URB_FUNCTION_ABORT_PIPE";
+                                case URB_FUNCTION_RESET_PIPE:
+                                    return "URB_FUNCTION_RESET_PIPE";
+                                case URB_FUNCTION_SYNC_RESET_PIPE:
+                                    return "URB_FUNCTION_SYNC_RESET_PIPE";
+                                case URB_FUNCTION_SYNC_CLEAR_STALL:
+                                    return "URB_FUNCTION_SYNC_CLEAR_STALL";
+                                default:
+                                    // urb is a bulk/interrupt or control transfer
+                                    return string.Format("{0}  (USB URB Function: {1})",
+                                        (BUSDOG_REQUEST_USB_DIRECTION)Params.p2 == BUSDOG_REQUEST_USB_DIRECTION.BusDogUsbIn ? "In" : "Out",
+                                        Params.p3);
+                            }
+                        case BUSDOG_REQUEST_INTERNAL_DEVICE_CONTROL_TYPE.BusDogUSBResetPort:
+                            return "Reset Port";
                     }
                     goto default;
                 default:
@@ -118,32 +139,42 @@ namespace busdog
 
         public string BufToChars()
         {
-            StringBuilder sb = new StringBuilder(Buffer.Length);
-            sb.Length = Buffer.Length;
-            for (int i = 0; i < Buffer.Length; i++)
+            if (Buffer != null)
             {
-                byte b = Buffer[i];
-                if (b > 31 && b < 128)
-                    sb[i] = (char)b;
-                else
-                    sb[i] = '.';
+                StringBuilder sb = new StringBuilder(Buffer.Length);
+                sb.Length = Buffer.Length;
+                for (int i = 0; i < Buffer.Length; i++)
+                {
+                    byte b = Buffer[i];
+                    if (b > 31 && b < 128)
+                        sb[i] = (char)b;
+                    else
+                        sb[i] = '.';
+                }
+                return sb.ToString();
             }
-            return sb.ToString();
+            else
+                return "";
         }
 
         public string BufToHex()
         {
-            StringBuilder sb = new StringBuilder(Buffer.Length * 3 - 1);
-            sb.Length = Buffer.Length * 3 - 1;
-            for (int i = 0; i < Buffer.Length; i++)
+            if (Buffer != null)
             {
-                string hex = String.Format("{0:x2}", Buffer[i]);
-                sb[i * 3] = hex[0];
-                sb[i * 3 + 1] = hex[1];
-                if (i < Buffer.Length - 1)
-                    sb[i * 3 + 2] = ' ';
+                StringBuilder sb = new StringBuilder(Buffer.Length * 3 - 1);
+                sb.Length = Buffer.Length * 3 - 1;
+                for (int i = 0; i < Buffer.Length; i++)
+                {
+                    string hex = String.Format("{0:x2}", Buffer[i]);
+                    sb[i * 3] = hex[0];
+                    sb[i * 3 + 1] = hex[1];
+                    if (i < Buffer.Length - 1)
+                        sb[i * 3 + 2] = ' ';
+                }
+                return sb.ToString();
             }
-            return sb.ToString();
+            else
+                return "";
         }
 
         public override string ToString()
@@ -389,12 +420,18 @@ namespace busdog
                         Marshal.PtrToStructure(new IntPtr(outBuffer.ToInt64() + index),
                             typeof(BUSDOG_FILTER_TRACE));
                     index += Marshal.SizeOf(typeof(BUSDOG_FILTER_TRACE));
-                    if (bytesReturned >= index + filterTrace.BufferSize.ToInt32())
+                    if (filterTrace.BufferSize.ToInt32() > 0)
                     {
-                        byte[] trace = new byte[filterTrace.BufferSize.ToInt32()];
-                        Marshal.Copy(new IntPtr(outBuffer.ToInt64() + index), trace, 0, (int)filterTrace.BufferSize);
-                        filterTraces.Add(new FilterTrace(filterTrace.DeviceId, filterTrace.Type, filterTrace.Params, filterTrace.Timestamp, trace));
+                        if (bytesReturned >= index + filterTrace.BufferSize.ToInt32())
+                        {
+                            byte[] trace = new byte[filterTrace.BufferSize.ToInt32()];
+                            Marshal.Copy(new IntPtr(outBuffer.ToInt64() + index), trace, 0, (int)filterTrace.BufferSize);
+                            filterTraces.Add(new FilterTrace(filterTrace.DeviceId, filterTrace.Type, filterTrace.Params, filterTrace.Timestamp, trace));
+                        }
                     }
+                    else
+                        // trace has no buffer
+                        filterTraces.Add(new FilterTrace(filterTrace.DeviceId, filterTrace.Type, filterTrace.Params, filterTrace.Timestamp, null));
                     index += (int)filterTrace.BufferSize;
                 }        
             }

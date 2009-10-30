@@ -1,3 +1,11 @@
+2009-10-30  Daniel Newton  <djpnewton@gmail.com>
+
+	* filter/BusDogMain.c:
+	* filter/BusDogTraceList.c:
+    * filter/inc/BusDogUserCommon.h
+	* gui/busdog/MainForm.c:
+	* gui/busdog/Native.c: Added support for tracing usb bus resets and pipe resets
+
 2009-10-29  Daniel Newton  <djpnewton@gmail.com>
 
 	* gui/busdog/MainForm.cs:
