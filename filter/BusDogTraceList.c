@@ -6,6 +6,17 @@
 BUSDOG_FILTER_TRACE_FIFO    BusDogTraceFifo;
 WDFSPINLOCK                 BusDogTraceFifoLock;
 
+//
+// Import the queue that has all the pending requests for trace buffers
+//
+extern WDFQUEUE BufferRequestQueue;
+
+NTSTATUS 
+__BusDogFufillRequestWithTraces(
+    IN WDFREQUEST Request,
+    OUT size_t* bytesWritten
+    );
+
 NTSTATUS
 BusDogTraceFifoInit(
     WDFDRIVER Driver
@@ -154,8 +165,14 @@ BusDogAddTraceToFifo(
     )
 {
     PBUSDOG_FILTER_TRACE_FIFO_ITEM pTraceItem = NULL; 
+    WDFREQUEST request;
+    NTSTATUS status;
 
     WdfSpinLockAcquire(BusDogTraceFifoLock);
+
+    //
+    // First add trace to the fifo
+    //
 
     pTraceItem = BusDogTraceFifo.TraceItems[BusDogTraceFifo.WriteIndex];
 
@@ -179,6 +196,35 @@ BusDogAddTraceToFifo(
     if (BusDogTraceFifo.WriteIndex == BusDogTraceFifo.ReadIndex)
     {
         BusDogPrint(BUSDOG_DEBUG_ERROR, "On noes! We have overflow\n");
+    }
+
+    //
+    // Now see if we can complete a request from the manual queue
+    //
+    
+    status = WdfIoQueueRetrieveNextRequest(
+            BufferRequestQueue,
+            &request);
+
+    if (NT_SUCCESS(status))
+    {
+        size_t bytesWritten;
+
+        status = __BusDogFufillRequestWithTraces(request, &bytesWritten);
+
+        //
+        // Ok for better or worse we finally completed this request
+        //
+
+        WdfRequestCompleteWithInformation(request, status, bytesWritten);
+    }
+    else
+    {
+        if (status != STATUS_NO_MORE_ENTRIES)
+        {
+            BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfIoQueueRetrieveNextRequest failed - 0x%x\n",
+                status);
+        }
     }
 
     WdfSpinLockRelease(BusDogTraceFifoLock);
@@ -244,27 +290,34 @@ __BusDogRetrieveTraceSize(
     return sizeof(BUSDOG_FILTER_TRACE) + pTrace->BufferSize;
 }
 
-size_t
-BusDogFillBufferWithTraces(
+//
+// Assumes trace fifo already locked
+//
+NTSTATUS
+__BusDogFillBufferWithTraces(
     PVOID Buffer,
-    size_t BufferSize
+    size_t BufferSize,
+    OUT size_t* BytesWritten
     )
 {
     PBUSDOG_FILTER_TRACE pTrace = NULL;
-
+    NTSTATUS status             = STATUS_SUCCESS;
     size_t TraceSize;
 
-    size_t BytesWritten = 0;
-
-    WdfSpinLockAcquire(BusDogTraceFifoLock);
+    *BytesWritten = 0;
 
     while (TRUE)
     {
         TraceSize = __BusDogRetrieveTraceSize();
             
-        if (TraceSize > BufferSize - BytesWritten)
+        if (TraceSize > BufferSize - *BytesWritten)
         {
             BusDogPrint(BUSDOG_DEBUG_WARN, "No room for next trace\n");
+
+            if (*BytesWritten == 0)
+            {
+                status = STATUS_BUFFER_TOO_SMALL;
+            }
 
             break;
         }
@@ -275,23 +328,85 @@ BusDogFillBufferWithTraces(
         {
             BusDogPrint(BUSDOG_DEBUG_INFO, "No more traces\n");
 
+            if (*BytesWritten == 0)
+            {
+                status = STATUS_NO_DATA_DETECTED;
+            }
+
             break;
         }
 
         BusDogPrint(BUSDOG_DEBUG_INFO, "Got trace %d\n", pTrace);
 
-        RtlCopyMemory((PCHAR)Buffer + BytesWritten,
+        RtlCopyMemory((PCHAR)Buffer + *BytesWritten,
                 pTrace,
                 TraceSize);
 
-        BytesWritten += TraceSize;
+        *BytesWritten += TraceSize;
 
-        BusDogPrint(BUSDOG_DEBUG_INFO, "     Bytes written %d\n", BytesWritten);
+        BusDogPrint(BUSDOG_DEBUG_INFO, "     Bytes written %d\n", *BytesWritten);
     }
+
+    return status;
+}
+
+//
+// Assumes trace fifo already locked
+//
+NTSTATUS 
+__BusDogFufillRequestWithTraces(
+    IN WDFREQUEST Request,
+    OUT size_t* bytesWritten
+    )
+{
+    PVOID    outputBuffer = NULL;
+    size_t   realLength;
+    NTSTATUS status = STATUS_SUCCESS;    
+
+    *bytesWritten = 0;
+
+    //
+    // Get the output buffer...
+    //
+    status = WdfRequestRetrieveOutputBuffer(Request,
+            sizeof(BUSDOG_FILTER_TRACE),
+            &outputBuffer,
+            &realLength);
+
+    if (NT_SUCCESS(status)) 
+    {
+        //
+        // Fill buffer with traces
+        //
+
+        status = __BusDogFillBufferWithTraces(outputBuffer, 
+                                              realLength, 
+                                              bytesWritten);
+    }
+    else
+    {
+        BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfRequestRetrieveOutputBuffer failed - 0x%x\n",
+                status);
+    }
+
+    return status;
+}
+
+NTSTATUS 
+BusDogFufillRequestWithTraces(
+    IN WDFREQUEST Request,
+    OUT size_t* bytesWritten
+    )
+{
+    NTSTATUS status;    
+
+    WdfSpinLockAcquire(BusDogTraceFifoLock);
+
+    status = __BusDogFufillRequestWithTraces(Request, bytesWritten);
 
     WdfSpinLockRelease(BusDogTraceFifoLock);
 
-    return BytesWritten;
+    return status;
 }
 
 

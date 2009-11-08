@@ -17,6 +17,13 @@
 //
 WDFDEVICE       ControlDevice = NULL;
 
+//
+// BufferRequestQueue is a manual queue to store trace buffer requests
+// when an IOCTL_BUSDOG_GET_BUFFER request can not be fulfilled 
+// straight away 
+//
+WDFQUEUE        BufferRequestQueue;
+
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text (PAGE, BusDogIoDeviceControl)
 #pragma alloc_text (PAGE, BusDogCreateControlDevice)
@@ -505,6 +512,25 @@ Return Value:
     }
 
     //
+    // Create manual I/O queue to take care of user trace buffer requests
+    //
+    WDF_IO_QUEUE_CONFIG_INIT(&ioQueueConfig, WdfIoQueueDispatchManual);
+
+    ioQueueConfig.PowerManaged = WdfFalse;
+
+    status = WdfIoQueueCreate(controlDevice,
+                              &ioQueueConfig,
+                              WDF_NO_OBJECT_ATTRIBUTES,
+                              &BufferRequestQueue);
+
+    if (!NT_SUCCESS(status)) 
+    {
+        BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfIoQueueCreate failed 0x%x\n", status);
+
+        goto Error;
+    }
+
+    //
     // Control devices must notify WDF when they are done initializing.   I/O is
     // rejected until this call is made.
     //
@@ -601,7 +627,7 @@ Return Value:
     NTSTATUS               status = STATUS_SUCCESS;
     ULONG                  i;
     ULONG                  noItems;
-    WDFDEVICE              hFilterDevice;
+    WDFDEVICE              device;
     PBUSDOG_CONTEXT        context;
     PVOID                  outputBuffer = NULL;
     PBUSDOG_FILTER_ENABLED filterEnabledBuffer;
@@ -638,36 +664,53 @@ Return Value:
             BusDogPrint(BUSDOG_DEBUG_INFO, "Get buffer\n");
 
             //
-            // Get the output buffer...
+            // Try to fulfill the request with whats currently in the request buffer
             //
-            status = WdfRequestRetrieveOutputBuffer(Request,
-                    sizeof(BUSDOG_FILTER_TRACE),
-                    &outputBuffer,
-                    &realLength);
 
-            if (!NT_SUCCESS(status)) 
+            status = BusDogFufillRequestWithTraces(Request,
+                    &bytesWritten);
+
+            if (!NT_SUCCESS(status))
             {
-                BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfRequestRetrieveOutputBuffer failed - 0x%x\n",
-                            status);
+                if (status == STATUS_NO_DATA_DETECTED)
+                {
+                    //
+                    // Forward this read request to our manual queue
+                    // (in other words, we are going to defer this request
+                    // until we have some traces to match it with)
+                    //
 
-                WdfRequestComplete(Request, status);
+                    status = WdfRequestForwardToIoQueue(Request, BufferRequestQueue);
 
-                return;
+                    if (NT_SUCCESS(status))
+                    {
+                        return;
+                    }
+                    else
+                    {
+                        BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfRequestForwardToIoQueue failed Status 0x%x\n", status);
+                    }
+                }
+                else
+                {
+                    BusDogPrint(BUSDOG_DEBUG_ERROR, "BusDogFufillRequestWithTraces failed Status 0x%x\n", status);
+                }
             }
 
-            //
-            // Fill buffer with traces
-            //
-            
-            bytesWritten = BusDogFillBufferWithTraces(outputBuffer, realLength);
-
-            //
-            // Yes! Return to the user, telling them how many bytes
-            //  we copied....
-            //
-            WdfRequestCompleteWithInformation(Request, 
-                                              STATUS_SUCCESS,
-                                              bytesWritten);
+            if (NT_SUCCESS(status))
+            {
+                //
+                // Yes! Return to the user, telling them how many bytes
+                //  we copied....
+                //
+                WdfRequestCompleteWithInformation(Request, 
+                        STATUS_SUCCESS,
+                        bytesWritten);
+            }
+            else
+            {
+                WdfRequestComplete(Request, status);
+            }
 
             return;
 
@@ -753,9 +796,9 @@ Return Value:
                 // Get our device and context
                 //
 
-                hFilterDevice = WdfCollectionGetItem(BusDogDeviceCollection, i);
+                device = WdfCollectionGetItem(BusDogDeviceCollection, i);
 
-                context = BusDogGetDeviceContext(hFilterDevice);
+                context = BusDogGetDeviceContext(device);
 
 
                 if (filterEnabledBuffer->DeviceId == context->DeviceId)

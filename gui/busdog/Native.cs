@@ -4,6 +4,7 @@ using System.Text;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 using System.IO;
+using System.Threading;
 
 namespace busdog
 {
@@ -196,23 +197,221 @@ namespace busdog
         }
     }
 
+    public class FilterTraceArrivedEventArgs : EventArgs
+    {
+        public List<FilterTrace> Traces;
+
+        public FilterTraceArrivedEventArgs(List<FilterTrace> traces)
+        {
+            Traces = traces;
+        }
+    }
+
+    internal class DeviceIoOverlapped
+    {
+        private IntPtr mPtrOverlapped = IntPtr.Zero;
+
+        private int mFieldOffset_InternalLow = 0;
+        private int mFieldOffset_InternalHigh = 0;
+        private int mFieldOffset_OffsetLow = 0;
+        private int mFieldOffset_OffsetHigh = 0;
+        private int mFieldOffset_EventHandle = 0;
+
+        public DeviceIoOverlapped()
+        {
+            // Globally allocate the memory for the overlapped structure
+            mPtrOverlapped = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(NativeOverlapped)));
+
+            // Find the structural starting positions in the NativeOverlapped structure.
+            mFieldOffset_InternalLow = Marshal.OffsetOf(typeof(NativeOverlapped), "InternalLow").ToInt32();
+            mFieldOffset_InternalHigh = Marshal.OffsetOf(typeof(NativeOverlapped), "InternalHigh").ToInt32();
+            mFieldOffset_OffsetLow = Marshal.OffsetOf(typeof(NativeOverlapped), "OffsetLow").ToInt32();
+            mFieldOffset_OffsetHigh = Marshal.OffsetOf(typeof(NativeOverlapped), "OffsetHigh").ToInt32();
+            mFieldOffset_EventHandle = Marshal.OffsetOf(typeof(NativeOverlapped), "EventHandle").ToInt32();
+        }
+
+        public IntPtr InternalLow
+        {
+            get { return Marshal.ReadIntPtr(mPtrOverlapped, mFieldOffset_InternalLow); }
+            set { Marshal.WriteIntPtr(mPtrOverlapped, mFieldOffset_InternalLow, value); }
+        }
+
+        public IntPtr InternalHigh
+        {
+            get { return Marshal.ReadIntPtr(mPtrOverlapped, mFieldOffset_InternalHigh); }
+            set { Marshal.WriteIntPtr(mPtrOverlapped, mFieldOffset_InternalHigh, value); }
+        }
+
+        public int OffsetLow
+        {
+            get { return Marshal.ReadInt32(mPtrOverlapped, mFieldOffset_OffsetLow); }
+            set { Marshal.WriteInt32(mPtrOverlapped, mFieldOffset_OffsetLow, value); }
+        }
+
+        public int OffsetHigh
+        {
+            get { return Marshal.ReadInt32(mPtrOverlapped, mFieldOffset_OffsetHigh); }
+            set { Marshal.WriteInt32(mPtrOverlapped, mFieldOffset_OffsetHigh, value); }
+        }
+
+        /// <summary>
+        /// The overlapped event wait hande.
+        /// </summary>
+        public IntPtr EventHandle
+        {
+            get { return Marshal.ReadIntPtr(mPtrOverlapped, mFieldOffset_EventHandle); }
+            set { Marshal.WriteIntPtr(mPtrOverlapped, mFieldOffset_EventHandle, value); }
+        }
+
+        /// <summary>
+        /// Pass this into the DeviceIoControl and GetOverlappedResult APIs
+        /// </summary>
+        public IntPtr GlobalOverlapped
+        {
+            get { return mPtrOverlapped; }
+        }
+
+        /// <summary>
+        /// Set the overlapped wait handle and clear out the rest of the structure.
+        /// </summary>
+        /// <param name="hEventOverlapped"></param>
+        public void ClearAndSetEvent(IntPtr hEventOverlapped)
+        {
+            EventHandle = hEventOverlapped;
+            InternalLow = IntPtr.Zero;
+            InternalHigh = IntPtr.Zero;
+            OffsetLow = 0;
+            OffsetHigh = 0;
+        }
+
+        // Clean up the globally allocated memory.
+        ~DeviceIoOverlapped()
+        {
+            if (mPtrOverlapped != IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(mPtrOverlapped);
+                mPtrOverlapped = IntPtr.Zero;
+            }
+        }
+    }
+
     public class Native
     {
         uint outBufferSize = 0x10000;
         IntPtr outBuffer;
         uint inBufferSize = 0x10000;
         IntPtr inBuffer;
+
+        Thread TraceBufferThread;
+
+        public event EventHandler<FilterTraceArrivedEventArgs> FilterTraceArrived;
  
         public Native()
         {
             outBuffer = Marshal.AllocHGlobal((int)outBufferSize);
             inBuffer = Marshal.AllocHGlobal((int)inBufferSize);
+
+            InitHandles();
+
+            TraceBufferThread = new Thread(TraceBufRead);
         }
 
         ~Native()
         {
             Marshal.FreeHGlobal(outBuffer);
             Marshal.FreeHGlobal(inBuffer);
+        }
+
+        public void StartTraceReader()
+        {
+            try // try/catch here because if guard is falling through even if expression is false???
+            {
+                if (TraceBufferThread.ThreadState != ThreadState.Running)
+                    TraceBufferThread.Start();
+            }
+            catch
+            {}
+        }
+
+        public void StopTraceReader()
+        {
+            if (TraceBufferThread.ThreadState != ThreadState.Stopped &&
+                TraceBufferThread.ThreadState != ThreadState.Unstarted)
+            {
+                TraceBufferThread.Abort();
+                TraceBufferThread.Join();
+                // recreate thread (cannot restart stopped thread later on)
+                TraceBufferThread = new Thread(TraceBufRead);
+            }
+        }
+
+        /// <summary>
+        /// Overlapped I/O operation is in progress.
+        /// </summary>
+        public const int ERROR_IO_PENDING = 997;
+
+        /// <summary>
+        /// The wait object signaled
+        /// </summary>
+        public const int WAIT_OBJECT_0 = 0;
+
+        void TraceBufRead()
+        {
+            try
+            {
+                DeviceIoOverlapped deviceIoOverlapped = new DeviceIoOverlapped();
+                ManualResetEvent hEvent = new ManualResetEvent(false);
+                deviceIoOverlapped.ClearAndSetEvent(hEvent.SafeWaitHandle.DangerousGetHandle());
+
+                while (true)
+                {
+                    uint bytesReturned;
+                    // send the get trace buffer command to the driver
+                    bool result =
+                    DeviceIoControl(
+                        hDeviceTraceBufThread,
+                        IOCTL_BUSDOG_GET_BUFFER,
+                        IntPtr.Zero,
+                        0,
+                        outBuffer,
+                        outBufferSize,
+                        out bytesReturned,
+                        deviceIoOverlapped.GlobalOverlapped);
+                    if (!result)
+                    {
+                        int err = Marshal.GetLastWin32Error();
+                        // check if the I/O request is pending
+                        if (err == ERROR_IO_PENDING)
+                        {
+                            while (true)
+                            {
+                                // keep checking if the I/O request has been fufilled (abort after 500ms so our thread can be killed)
+                                if (WaitForSingleObject(deviceIoOverlapped.EventHandle, 500) == WAIT_OBJECT_0)
+                                {
+                                    result = true;
+                                    bytesReturned = (uint)deviceIoOverlapped.InternalHigh.ToInt32();
+                                    break;
+                                }
+                            }
+                        }
+                        else
+                            System.Diagnostics.Debug.WriteLine(err);
+                    }
+                    if (result)
+                    {
+                        // we have a result so now we convert the buffer into a trace list and call the event
+                        if (FilterTraceArrived != null)
+                            FilterTraceArrived(
+                                this, 
+                                new FilterTraceArrivedEventArgs(GetTraceList(outBuffer, outBufferSize, bytesReturned)));
+                    }
+                }
+            }
+            catch (ThreadAbortException)
+            {
+                // We will cancel any pending IO on this thread before exiting
+                CancelIo(hDeviceTraceBufThread);
+            }
         }
 
         static uint CTL_CODE(uint deviceType, uint function, uint method, uint access)
@@ -290,7 +489,7 @@ namespace busdog
             [MarshalAs(UnmanagedType.U4)] FileShare fileShare,
             int securityAttributes,
             [MarshalAs(UnmanagedType.U4)] FileMode creationDisposition,
-            int flags,
+            [MarshalAs(UnmanagedType.U4)] FileOptions flags,
             IntPtr overlapped);
 
         [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
@@ -301,13 +500,23 @@ namespace busdog
             [MarshalAs(UnmanagedType.U4)]uint nInBufferSize, 
             IntPtr lpOutBuffer, 
             [MarshalAs(UnmanagedType.U4)]uint nOutBufferSize, 
-            [MarshalAs(UnmanagedType.U4)]out uint lpBytesReturned, 
+            [MarshalAs(UnmanagedType.U4)]out uint lpBytesReturned,
             IntPtr lpOverlapped
         );
 
-        SafeFileHandle hDevice = null;
+        [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        static extern bool CancelIo(
+            SafeFileHandle hFile);
 
-        void Init()
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        static extern UInt32 WaitForSingleObject(IntPtr hHandle, UInt32 dwMilliseconds);
+
+        // blocking handle for general I/O (get device list, enable/disable tracing etc)
+        SafeFileHandle hDevice = null;
+        // non-blocking handle for trace buffer I/O, for use in the trace buffer thread
+        SafeFileHandle hDeviceTraceBufThread = null;
+
+        void InitHandles()
         {
             if (hDevice == null)
             {
@@ -322,6 +531,19 @@ namespace busdog
                         IntPtr.Zero),
                     true);
             }
+            if (hDeviceTraceBufThread == null)
+            {
+                hDeviceTraceBufThread = new SafeFileHandle(
+                    CreateFile(
+                        "\\\\.\\BusDogFilter",
+                        FileAccess.ReadWrite,
+                        FileShare.ReadWrite,
+                        0,
+                        FileMode.Open,
+                        FileOptions.Asynchronous,
+                        IntPtr.Zero),
+                    true);
+            }
         }
 
         public bool DeviceIoControl(
@@ -332,7 +554,6 @@ namespace busdog
             uint nOutBufferSize, 
             out uint lpBytesReturned)
         {
-            Init();
             return DeviceIoControl(
                 hDevice,
                 code,
@@ -399,47 +620,32 @@ namespace busdog
             return result;
         }
 
-        public bool GetTraceList(out List<FilterTrace> filterTraces)
+        public List<FilterTrace> GetTraceList(IntPtr buffer, uint bufferSize, uint bytesReturned)
         {
-            filterTraces = new List<FilterTrace>();
-            uint bytesReturned;
-            bool result =
-                DeviceIoControl(IOCTL_BUSDOG_GET_BUFFER,
-                    IntPtr.Zero,
-                    0,
-                    outBuffer,
-                    outBufferSize,
-                    out bytesReturned);
-            if (result)
+            List<FilterTrace> filterTraces = new List<FilterTrace>();
+            int index = 0;
+            while (bytesReturned >= index + Marshal.SizeOf(typeof(BUSDOG_FILTER_TRACE)))
             {
-                int index = 0;
-                while (bytesReturned >= index + Marshal.SizeOf(typeof(BUSDOG_FILTER_TRACE)))
+                BUSDOG_FILTER_TRACE filterTrace =
+                    (BUSDOG_FILTER_TRACE)
+                    Marshal.PtrToStructure(new IntPtr(outBuffer.ToInt64() + index),
+                        typeof(BUSDOG_FILTER_TRACE));
+                index += Marshal.SizeOf(typeof(BUSDOG_FILTER_TRACE));
+                if (filterTrace.BufferSize.ToInt32() > 0)
                 {
-                    BUSDOG_FILTER_TRACE filterTrace =
-                        (BUSDOG_FILTER_TRACE)
-                        Marshal.PtrToStructure(new IntPtr(outBuffer.ToInt64() + index),
-                            typeof(BUSDOG_FILTER_TRACE));
-                    index += Marshal.SizeOf(typeof(BUSDOG_FILTER_TRACE));
-                    if (filterTrace.BufferSize.ToInt32() > 0)
+                    if (bytesReturned >= index + filterTrace.BufferSize.ToInt32())
                     {
-                        if (bytesReturned >= index + filterTrace.BufferSize.ToInt32())
-                        {
-                            byte[] trace = new byte[filterTrace.BufferSize.ToInt32()];
-                            Marshal.Copy(new IntPtr(outBuffer.ToInt64() + index), trace, 0, (int)filterTrace.BufferSize);
-                            filterTraces.Add(new FilterTrace(filterTrace.DeviceId, filterTrace.Type, filterTrace.Params, filterTrace.Timestamp, trace));
-                        }
+                        byte[] trace = new byte[filterTrace.BufferSize.ToInt32()];
+                        Marshal.Copy(new IntPtr(outBuffer.ToInt64() + index), trace, 0, (int)filterTrace.BufferSize);
+                        filterTraces.Add(new FilterTrace(filterTrace.DeviceId, filterTrace.Type, filterTrace.Params, filterTrace.Timestamp, trace));
                     }
-                    else
-                        // trace has no buffer
-                        filterTraces.Add(new FilterTrace(filterTrace.DeviceId, filterTrace.Type, filterTrace.Params, filterTrace.Timestamp, null));
-                    index += (int)filterTrace.BufferSize;
-                }        
+                }
+                else
+                    // trace has no buffer
+                    filterTraces.Add(new FilterTrace(filterTrace.DeviceId, filterTrace.Type, filterTrace.Params, filterTrace.Timestamp, null));
+                index += (int)filterTrace.BufferSize;
             }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine(Marshal.GetLastWin32Error());
-            }
-            return result;
+            return filterTraces;
         }
 
         public bool StartTracing()

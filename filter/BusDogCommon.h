@@ -211,10 +211,10 @@ BusDogAddTraceToFifo(
     ULONG BufferLength
     );
 
-size_t
-BusDogFillBufferWithTraces(
-    PVOID Buffer,
-    size_t BufferSize
+NTSTATUS 
+BusDogFufillRequestWithTraces(
+    IN WDFREQUEST Request,
+    OUT size_t* bytesWritten
     );
 
 //

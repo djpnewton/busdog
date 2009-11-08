@@ -57,7 +57,6 @@
             this.gbFilterDriver = new System.Windows.Forms.GroupBox();
             this.btnReinstall = new System.Windows.Forms.Button();
             this.btnUninstall = new System.Windows.Forms.Button();
-            this.tmrTrace = new System.Windows.Forms.Timer(this.components);
             this.tmrDeviceChange = new System.Windows.Forms.Timer(this.components);
             this.tabControl.SuspendLayout();
             this.tabDevices.SuspendLayout();
@@ -372,10 +371,6 @@
             this.btnUninstall.UseVisualStyleBackColor = true;
             this.btnUninstall.Click += new System.EventHandler(this.btnUninstall_Click);
             // 
-            // tmrTrace
-            // 
-            this.tmrTrace.Tick += new System.EventHandler(this.tmrTrace_Tick);
-            // 
             // tmrDeviceChange
             // 
             this.tmrDeviceChange.Interval = 1000;
@@ -390,6 +385,7 @@
             this.Name = "MainForm";
             this.Text = "BusDog";
             this.Load += new System.EventHandler(this.MainForm_Load);
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.MainForm_FormClosed);
             this.tabControl.ResumeLayout(false);
             this.tabDevices.ResumeLayout(false);
             this.tabTrace.ResumeLayout(false);
@@ -413,7 +409,6 @@
         private System.Windows.Forms.TabControl tabControl;
         private System.Windows.Forms.TabPage tabDevices;
         private System.Windows.Forms.TabPage tabTrace;
-        private System.Windows.Forms.Timer tmrTrace;
         private BufferedListView lvTraces;
         private System.Windows.Forms.ColumnHeader chId;
         private System.Windows.Forms.ColumnHeader chType;

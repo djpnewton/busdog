@@ -1,3 +1,16 @@
+2009-11-08  Daniel Newton  <djpnewton@gmail.com>
+
+	* filter/BusDogCommon.h:
+	* filter/BusDogTraceList.c:  
+	* filter/BusDogMain.c: Added a manual queue for user mode trace buffer
+	requests (with luck this will be a better design so that the requests
+	would be pending to the user code and they do not have to poll for data)
+
+	* gui/busdog/MainForm.cs:
+	* gui/busdog/MainForm.Designer.cs:
+	* gui/busdog/MainForm.resx:
+	* gui/busdog/Native.cs: Added a thread to handle the blocking trace buffer ioctl
+
 2009-10-30  Daniel Newton  <djpnewton@gmail.com>
 
 	* filter/BusDogMain.c:
@@ -14,14 +27,15 @@
 
 2009-10-28  Daniel Newton  <djpnewton@gmail.com>
 
+	* filter/busdog.inx:
+	* gui/busdog/Properties/AssemblyInfo.cs: Updated version to 0.2
+
+2009-10-28  Daniel Newton  <djpnewton@gmail.com>
+
 	* make_package.bat, gui/driverRes/build.xml: add debug symbols to release
 	packages
 
 	* filter/BusDogMain.c: removed obsolete WDM preprocess code
-
-	* filter/busdog.inx:
-	* gui/busdog/Properties/AssemblyInfo.cs:
-	  Updated version to 0.2
 
 2009-10-27  Daniel Newton  <djpnewton@gmail.com>
 

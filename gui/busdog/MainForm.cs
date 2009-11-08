@@ -16,6 +16,8 @@ namespace busdog
 
     public partial class MainForm : Form
     {
+        public delegate void FilterTraceArrived(object sender, FilterTraceArrivedEventArgs e);
+
         Native native = new Native();
         DeviceManagement devManage = new DeviceManagement();
         IntPtr devNotificationsHandle;
@@ -42,6 +44,13 @@ namespace busdog
             devManage.RegisterForDeviceNotifications(Handle, ref devNotificationsHandle);
 
             EnumFilterDevices();
+
+            native.FilterTraceArrived += new EventHandler<FilterTraceArrivedEventArgs>(RecievedFilterTraces);
+        }
+
+        private void MainForm_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            native.StopTraceReader();
         }
 
         private bool ProcessCommandLine()
@@ -122,24 +131,27 @@ namespace busdog
 
             //  Let the base form process the message.
             base.WndProc(ref m);
-        }        
+        }
 
-        private void tmrTrace_Tick(object sender, EventArgs e)
+        private void RecievedFilterTraces(object sender, FilterTraceArrivedEventArgs e)
         {
-            if (tabControl.SelectedTab == tabTrace)
+            if (InvokeRequired)
             {
-                SuspendLayout();
-
-                List<FilterTrace> filterTraces;
-                if (native.GetTraceList(out filterTraces))
+                Invoke(new FilterTraceArrived(RecievedFilterTraces), new Object[] { sender, e });
+            }
+            else
+            {
+                if (tabControl.SelectedTab == tabTrace)
                 {
-                    foreach (FilterTrace filterTrace in filterTraces)
+                    SuspendLayout();
+
+                    foreach (FilterTrace filterTrace in e.Traces)
                     {
                         AddFilterTrace(filterTrace);
                     }
-                }
 
-                ResumeLayout(true);
+                    ResumeLayout(true);
+                }
             }
         }
 
@@ -259,11 +271,16 @@ namespace busdog
 
         private void UpdateTracingStatus()
         {
-            if (btnStartTraces.Checked && tabControl.SelectedTab == tabTrace)
-                native.StartTracing();
+            if (btnStartTraces.Checked)
+            {
+                if (tabControl.SelectedTab == tabTrace)
+                    native.StartTracing();
+                else
+                    native.StopTracing();
+                native.StartTraceReader();
+            }
             else
-                native.StopTracing();
-            tmrTrace.Enabled = btnStartTraces.Checked;
+                native.StopTraceReader();
             btnStartTraces.Checked = btnStartTraces.Checked;
         }
 
