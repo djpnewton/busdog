@@ -1,3 +1,9 @@
+2009-11-09  Daniel Newton  <djpnewton@gmail.com>
+
+	* gui/busdog/Native.cs: Reset the overlapped structure before each
+	DeviceIoControl in the trace buffer thread (this stops the 
+	annoying ERROR_INVALID_HANDLE result)
+
 2009-11-08  Daniel Newton  <djpnewton@gmail.com>
 
 	* filter/BusDogCommon.h:

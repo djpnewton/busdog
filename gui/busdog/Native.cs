@@ -361,12 +361,12 @@ namespace busdog
             {
                 DeviceIoOverlapped deviceIoOverlapped = new DeviceIoOverlapped();
                 ManualResetEvent hEvent = new ManualResetEvent(false);
-                deviceIoOverlapped.ClearAndSetEvent(hEvent.SafeWaitHandle.DangerousGetHandle());
 
                 while (true)
                 {
                     uint bytesReturned;
                     // send the get trace buffer command to the driver
+                    deviceIoOverlapped.ClearAndSetEvent(hEvent.SafeWaitHandle.DangerousGetHandle());
                     bool result =
                     DeviceIoControl(
                         hDeviceTraceBufThread,
