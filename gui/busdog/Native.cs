@@ -81,11 +81,54 @@ namespace busdog
         
     public struct FilterTrace
     {
-        // URB function consts
-        const int URB_FUNCTION_ABORT_PIPE = 0x0002;
-        const int URB_FUNCTION_RESET_PIPE = 0x001E;
-        const int URB_FUNCTION_SYNC_RESET_PIPE = 0x0030;
-        const int URB_FUNCTION_SYNC_CLEAR_STALL = 0x0031;
+        #region URB request codes
+        const int URB_FUNCTION_SELECT_CONFIGURATION           = 0x0000;
+        const int URB_FUNCTION_SELECT_INTERFACE               = 0x0001;
+        const int URB_FUNCTION_ABORT_PIPE                     = 0x0002;
+        const int URB_FUNCTION_TAKE_FRAME_LENGTH_CONTROL      = 0x0003;
+        const int URB_FUNCTION_RELEASE_FRAME_LENGTH_CONTROL   = 0x0004;
+        const int URB_FUNCTION_GET_FRAME_LENGTH               = 0x0005;
+        const int URB_FUNCTION_SET_FRAME_LENGTH               = 0x0006;
+        const int URB_FUNCTION_GET_CURRENT_FRAME_NUMBER       = 0x0007;
+        const int URB_FUNCTION_CONTROL_TRANSFER               = 0x0008;
+        const int URB_FUNCTION_BULK_OR_INTERRUPT_TRANSFER     = 0x0009;
+        const int URB_FUNCTION_ISOCH_TRANSFER                 = 0x000A;
+        const int URB_FUNCTION_GET_DESCRIPTOR_FROM_DEVICE     = 0x000B;
+        const int URB_FUNCTION_SET_DESCRIPTOR_TO_DEVICE       = 0x000C;
+        const int URB_FUNCTION_SET_FEATURE_TO_DEVICE          = 0x000D;
+        const int URB_FUNCTION_SET_FEATURE_TO_INTERFACE       = 0x000E;
+        const int URB_FUNCTION_SET_FEATURE_TO_ENDPOINT        = 0x000F;
+        const int URB_FUNCTION_CLEAR_FEATURE_TO_DEVICE        = 0x0010;
+        const int URB_FUNCTION_CLEAR_FEATURE_TO_INTERFACE     = 0x0011;
+        const int URB_FUNCTION_CLEAR_FEATURE_TO_ENDPOINT      = 0x0012;
+        const int URB_FUNCTION_GET_STATUS_FROM_DEVICE         = 0x0013;
+        const int URB_FUNCTION_GET_STATUS_FROM_INTERFACE      = 0x0014;
+        const int URB_FUNCTION_GET_STATUS_FROM_ENDPOINT       = 0x0015;
+        const int URB_FUNCTION_RESERVED_0X0016                = 0x0016;
+        const int URB_FUNCTION_VENDOR_DEVICE                  = 0x0017;
+        const int URB_FUNCTION_VENDOR_INTERFACE               = 0x0018;
+        const int URB_FUNCTION_VENDOR_ENDPOINT                = 0x0019;
+        const int URB_FUNCTION_CLASS_DEVICE                   = 0x001A;
+        const int URB_FUNCTION_CLASS_INTERFACE                = 0x001B;
+        const int URB_FUNCTION_CLASS_ENDPOINT                 = 0x001C;
+        const int URB_FUNCTION_RESERVE_0X001D                 = 0x001D;
+        // previously URB_FUNCTION_RESET_PIPE
+        const int URB_FUNCTION_SYNC_RESET_PIPE_AND_CLEAR_STALL= 0x001E;
+        const int URB_FUNCTION_CLASS_OTHER                    = 0x001F;
+        const int URB_FUNCTION_VENDOR_OTHER                   = 0x0020;
+        const int URB_FUNCTION_GET_STATUS_FROM_OTHER          = 0x0021;
+        const int URB_FUNCTION_CLEAR_FEATURE_TO_OTHER         = 0x0022;
+        const int URB_FUNCTION_SET_FEATURE_TO_OTHER           = 0x0023;
+        const int URB_FUNCTION_GET_DESCRIPTOR_FROM_ENDPOINT   = 0x0024;
+        const int URB_FUNCTION_SET_DESCRIPTOR_TO_ENDPOINT     = 0x0025;
+        const int URB_FUNCTION_GET_CONFIGURATION              = 0x0026;
+        const int URB_FUNCTION_GET_INTERFACE                  = 0x0027;
+        const int URB_FUNCTION_GET_DESCRIPTOR_FROM_INTERFACE  = 0x0028;
+        const int URB_FUNCTION_SET_DESCRIPTOR_TO_INTERFACE    = 0x0029;
+        const int URB_FUNCTION_GET_MS_FEATURE_DESCRIPTOR      = 0x002A;
+        const int URB_FUNCTION_SYNC_RESET_PIPE                = 0x0030;
+        const int URB_FUNCTION_SYNC_CLEAR_STALL               = 0x0031;
+        #endregion
 
         public uint  DeviceId;
         public BUSDOG_REQUEST_TYPE Type;
@@ -117,12 +160,24 @@ namespace busdog
                             {
                                 case URB_FUNCTION_ABORT_PIPE:
                                     return "URB_FUNCTION_ABORT_PIPE";
-                                case URB_FUNCTION_RESET_PIPE:
-                                    return "URB_FUNCTION_RESET_PIPE";
+                                case URB_FUNCTION_SYNC_RESET_PIPE_AND_CLEAR_STALL:
+                                    return "URB_FUNCTION_SYNC_RESET_PIPE_AND_CLEAR_STALL";
                                 case URB_FUNCTION_SYNC_RESET_PIPE:
                                     return "URB_FUNCTION_SYNC_RESET_PIPE";
                                 case URB_FUNCTION_SYNC_CLEAR_STALL:
                                     return "URB_FUNCTION_SYNC_CLEAR_STALL";
+                                case URB_FUNCTION_GET_DESCRIPTOR_FROM_DEVICE:
+                                    return "URB_FUNCTION_GET_DESCRIPTOR_FROM_DEVICE";
+                                case URB_FUNCTION_GET_DESCRIPTOR_FROM_ENDPOINT:
+                                    return "URB_FUNCTION_GET_DESCRIPTOR_FROM_ENDPOINT";
+                                case URB_FUNCTION_GET_DESCRIPTOR_FROM_INTERFACE:
+                                    return "URB_FUNCTION_GET_DESCRIPTOR_FROM_INTERFACE";
+                                case URB_FUNCTION_SET_DESCRIPTOR_TO_DEVICE:
+                                    return "URB_FUNCTION_SET_DESCRIPTOR_TO_DEVICE";
+                                case URB_FUNCTION_SET_DESCRIPTOR_TO_ENDPOINT:
+                                    return "URB_FUNCTION_SET_DESCRIPTOR_TO_ENDPOINT";
+                                case URB_FUNCTION_SET_DESCRIPTOR_TO_INTERFACE:
+                                    return "URB_FUNCTION_SET_DESCRIPTOR_TO_INTERFACE";
                                 default:
                                     // urb is a bulk/interrupt or control transfer
                                     return string.Format("{0}  (USB URB Function: {1})",

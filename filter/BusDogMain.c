@@ -1323,6 +1323,64 @@ BusDogIoInternalDeviceControlComplete(
     WdfRequestComplete(Request, Params->IoStatus.Status);
 }
 
+VOID __BusDogProcessUrbDescriptorRequest(
+    IN WDFDEVICE Device,
+    IN PBUSDOG_CONTEXT Context,
+    IN PURB pUrb,
+    IN BOOLEAN bCompletion,
+    IN BOOLEAN bRead
+    )
+{
+    struct _URB_CONTROL_DESCRIPTOR_REQUEST* pDescReq = (struct _URB_CONTROL_DESCRIPTOR_REQUEST*)pUrb;
+
+    PVOID pTransferBuffer = pDescReq->TransferBuffer;
+    PMDL pTransferBufferMDL = pDescReq->TransferBufferMDL;
+    ULONG TransferBufferLength = pDescReq->TransferBufferLength;
+
+    if (bCompletion && bRead || !bCompletion && !bRead)
+    {
+        BUSDOG_REQUEST_PARAMS params;
+        BUSDOG_REQUEST_PARAMS_INIT(&params);
+
+        BusDogPrint(BUSDOG_DEBUG_INFO, "        TransferBufferLength: %d\n", TransferBufferLength);
+        BusDogPrint(BUSDOG_DEBUG_INFO, "        MDL: %d\n", pTransferBufferMDL != NULL);
+
+        params.p1 = BusDogUSBSubmitURB;
+        params.p2 = (pDescReq->Index << 8) | pDescReq->DescriptorType;
+        params.p3 = pUrb->UrbHeader.Function;
+        params.p4 = pDescReq->LanguageId;
+
+        if (pTransferBuffer != NULL)
+        {
+            PrintChars((PCHAR)pTransferBuffer, TransferBufferLength);
+
+            BusDogAddTraceToFifo(Device,
+                    Context->DeviceId, 
+                    BusDogInternalDeviceControlRequest, 
+                    params,
+                    pTransferBuffer, 
+                    TransferBufferLength);
+        }
+        else if (pTransferBufferMDL != NULL)
+        {
+            PCHAR pMDLBuf = (PCHAR)MmGetSystemAddressForMdlSafe(pTransferBufferMDL, NormalPagePriority);
+
+            PrintChars(pMDLBuf, TransferBufferLength);
+
+            BusDogAddTraceToFifo(Device,
+                    Context->DeviceId, 
+                    BusDogInternalDeviceControlRequest, 
+                    params,
+                    pMDLBuf, 
+                    TransferBufferLength);
+        }
+        else
+        {
+            BusDogPrint(BUSDOG_DEBUG_ERROR, "Buffer error!\n");
+        }
+    }
+}
+
 VOID
 __BusDogProcessUrbTransfer(
     IN WDFDEVICE Device,
@@ -1549,6 +1607,49 @@ BusDogProcessInternalDeviceControl(
 
                         break;
                     }
+
+                    case URB_FUNCTION_GET_DESCRIPTOR_FROM_DEVICE:
+                    case URB_FUNCTION_GET_DESCRIPTOR_FROM_ENDPOINT:
+                    case URB_FUNCTION_GET_DESCRIPTOR_FROM_INTERFACE:
+                    case URB_FUNCTION_SET_DESCRIPTOR_TO_DEVICE:
+                    case URB_FUNCTION_SET_DESCRIPTOR_TO_ENDPOINT:
+                    case URB_FUNCTION_SET_DESCRIPTOR_TO_INTERFACE:
+                    {
+                        switch (pUrb->UrbHeader.Function)
+                        {
+                            case URB_FUNCTION_GET_DESCRIPTOR_FROM_DEVICE:
+                                BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_GET_DESCRIPTOR_FROM_DEVICE\n");
+                                *bRead = TRUE;
+                                break;
+                            case URB_FUNCTION_GET_DESCRIPTOR_FROM_ENDPOINT:
+                                BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_GET_DESCRIPTOR_FROM_ENDPOINT\n");
+                                *bRead = TRUE;
+                                break;
+                            case URB_FUNCTION_GET_DESCRIPTOR_FROM_INTERFACE:
+                                BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_GET_DESCRIPTOR_FROM_INTERFACE\n");
+                                *bRead = TRUE;
+                                break;
+                            case URB_FUNCTION_SET_DESCRIPTOR_TO_DEVICE:
+                                BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_SET_DESCRIPTOR_TO_DEVICE\n");
+                                break;
+                            case URB_FUNCTION_SET_DESCRIPTOR_TO_ENDPOINT:
+                                BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_SET_DESCRIPTOR_TO_ENDPOINT\n");
+                                break;
+                            case URB_FUNCTION_SET_DESCRIPTOR_TO_INTERFACE:
+                                BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_SET_DESCRIPTOR_TO_INTERFACE\n");
+                                break;
+                        }
+
+                        __BusDogProcessUrbDescriptorRequest(
+                                Device,
+                                Context,
+                                pUrb,
+                                bCompletion,
+                                *bRead);        
+
+                        break;
+                    }
+
                     default:
                         BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION: %d\n", pUrb->UrbHeader.Function);
                         break;
