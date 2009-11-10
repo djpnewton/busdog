@@ -58,6 +58,7 @@
             this.btnReinstall = new System.Windows.Forms.Button();
             this.btnUninstall = new System.Windows.Forms.Button();
             this.tmrDeviceChange = new System.Windows.Forms.Timer(this.components);
+            this.cbAutoTrace = new System.Windows.Forms.CheckBox();
             this.tabControl.SuspendLayout();
             this.tabDevices.SuspendLayout();
             this.tabTrace.SuspendLayout();
@@ -85,6 +86,7 @@
             // 
             // tabDevices
             // 
+            this.tabDevices.Controls.Add(this.cbAutoTrace);
             this.tabDevices.Controls.Add(this.tvDevices);
             this.tabDevices.Location = new System.Drawing.Point(4, 22);
             this.tabDevices.Name = "tabDevices";
@@ -376,6 +378,18 @@
             this.tmrDeviceChange.Interval = 1000;
             this.tmrDeviceChange.Tick += new System.EventHandler(this.tmrDeviceChange_Tick);
             // 
+            // cbAutoTrace
+            // 
+            this.cbAutoTrace.AutoSize = true;
+            this.cbAutoTrace.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.cbAutoTrace.Location = new System.Drawing.Point(3, 340);
+            this.cbAutoTrace.Name = "cbAutoTrace";
+            this.cbAutoTrace.Size = new System.Drawing.Size(371, 17);
+            this.cbAutoTrace.TabIndex = 2;
+            this.cbAutoTrace.Text = "Automatically trace new devices";
+            this.cbAutoTrace.UseVisualStyleBackColor = true;
+            this.cbAutoTrace.CheckedChanged += new System.EventHandler(this.cbAutoTrace_CheckedChanged);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -388,6 +402,7 @@
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.MainForm_FormClosed);
             this.tabControl.ResumeLayout(false);
             this.tabDevices.ResumeLayout(false);
+            this.tabDevices.PerformLayout();
             this.tabTrace.ResumeLayout(false);
             this.tscTrace.ContentPanel.ResumeLayout(false);
             this.tscTrace.TopToolStripPanel.ResumeLayout(false);
@@ -434,6 +449,7 @@
         private System.Windows.Forms.CheckBox cbHex;
         private System.Windows.Forms.CheckBox cbLength;
         private FilterControl filterControl;
+        private System.Windows.Forms.CheckBox cbAutoTrace;
     }
 }
 

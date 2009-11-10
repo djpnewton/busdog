@@ -505,6 +505,16 @@ namespace busdog
                                          METHOD_BUFFERED,    
                                          FILE_READ_ACCESS);
 
+        uint IOCTL_BUSDOG_GET_AUTOTRACE = CTL_CODE(FILE_DEVICE_BUSDOG,
+                                         2057,               
+                                         METHOD_BUFFERED,    
+                                         FILE_READ_ACCESS);   
+
+        uint IOCTL_BUSDOG_SET_AUTOTRACE = CTL_CODE(FILE_DEVICE_BUSDOG,
+                                         2058,               
+                                         METHOD_BUFFERED,    
+                                         FILE_WRITE_ACCESS);  
+
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
         struct BUSDOG_DEVICE_ID
         {
@@ -535,6 +545,16 @@ namespace busdog
             public BUSDOG_TIMESTAMP Timestamp;
             /* type is size_t in c */
             public IntPtr BufferSize;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        struct BUSDOG_AUTOTRACE
+        {
+            public byte AutoTrace;
+            public BUSDOG_AUTOTRACE(bool autoTrace)
+            {
+                AutoTrace = Convert.ToByte(autoTrace);
+            }
         }
 
         [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
@@ -723,6 +743,57 @@ namespace busdog
                     IntPtr.Zero,
                     0,
                     out bytesReturned);
+        }
+
+        public bool SetAutoTrace(bool value)
+        {
+            GCHandle h = GCHandle.Alloc(new BUSDOG_AUTOTRACE(value), GCHandleType.Pinned);
+            IntPtr p = h.AddrOfPinnedObject();
+            uint bytesReturned;
+            bool result =
+                DeviceIoControl(IOCTL_BUSDOG_SET_AUTOTRACE,
+                    p,
+                    (uint)Marshal.SizeOf(typeof(BUSDOG_AUTOTRACE)),
+                    IntPtr.Zero,
+                    0,
+                    out bytesReturned);
+            if (!result)
+            {
+                System.Diagnostics.Debug.WriteLine(Marshal.GetLastWin32Error());
+            }
+            h.Free();
+            return result;
+        }
+
+        public bool GetAutoTrace(out bool value)
+        {
+            value = false;
+            IntPtr p = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(BUSDOG_AUTOTRACE)));
+            uint bytesReturned;
+            bool result =
+                DeviceIoControl(IOCTL_BUSDOG_GET_AUTOTRACE,
+                    IntPtr.Zero,
+                    0,
+                    p,
+                    (uint)Marshal.SizeOf(typeof(BUSDOG_AUTOTRACE)),
+                    out bytesReturned);
+            if (result)
+            {
+                if (bytesReturned >= Marshal.SizeOf(typeof(BUSDOG_AUTOTRACE)))
+                {
+                    BUSDOG_AUTOTRACE autoTrace =
+                    (BUSDOG_AUTOTRACE)
+                    Marshal.PtrToStructure(p,
+                        typeof(BUSDOG_AUTOTRACE));
+                    value = Convert.ToBoolean(autoTrace.AutoTrace);
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine(Marshal.GetLastWin32Error());
+            }
+            Marshal.FreeHGlobal(p);
+            return result;
         }
     }
 }

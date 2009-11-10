@@ -46,6 +46,10 @@ namespace busdog
             EnumFilterDevices();
 
             native.FilterTraceArrived += new EventHandler<FilterTraceArrivedEventArgs>(RecievedFilterTraces);
+
+            bool autoTrace;
+            if (native.GetAutoTrace(out autoTrace))
+                cbAutoTrace.Checked = autoTrace;
         }
 
         private void MainForm_FormClosed(object sender, FormClosedEventArgs e)
@@ -395,6 +399,11 @@ namespace busdog
         private void tabControl_SelectedIndexChanged(object sender, EventArgs e)
         {
             UpdateTracingStatus();
+        }
+
+        private void cbAutoTrace_CheckedChanged(object sender, EventArgs e)
+        {
+            native.SetAutoTrace(cbAutoTrace.Checked);
         }
     }
 

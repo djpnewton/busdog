@@ -51,6 +51,15 @@
                                          METHOD_BUFFERED,    \
                                          FILE_WRITE_ACCESS)  \
 
+#define IOCTL_BUSDOG_GET_AUTOTRACE CTL_CODE(FILE_DEVICE_BUSDOG,\
+                                         2057,               \
+                                         METHOD_BUFFERED,    \
+                                         FILE_READ_ACCESS)   \
+
+#define IOCTL_BUSDOG_SET_AUTOTRACE CTL_CODE(FILE_DEVICE_BUSDOG,\
+                                         2058,               \
+                                         METHOD_BUFFERED,    \
+                                         FILE_WRITE_ACCESS)  \
 //
 // Packing size 1 for all public structs
 //
@@ -170,6 +179,17 @@ typedef struct
     DWORD DebugLevel;
 
 } BUSDOG_DEBUG_LEVEL, *PBUSDOG_DEBUG_LEVEL;
+
+//
+// struct definition for IOCTL_BUSDOG_GET_AUTOTRACE/IOCTL_BUSDOG_SET_AUTOTRACE
+//
+
+typedef struct
+{
+
+    BOOLEAN AutoTrace;
+
+} BUSDOG_AUTOTRACE, *PBUSDOG_AUTOTRACE;
 
 #define BUSDOG_DEBUG_INFO  3
 #define BUSDOG_DEBUG_WARN  2

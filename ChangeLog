@@ -1,6 +1,15 @@
 2009-11-10  Daniel Newton  <djpnewton@gmail.com>
 
 	* filter/BusDogMain.c:
+	* filter/inc/BusDogUserCommon.h:
+	* gui/busdog/MainForm.cs:
+	* gui/busdog/MainForm.Designer.cs:
+	* gui/busdog/Native.cs: Add option to automatically start tracing new
+	devices as they arrive (AutoTrace)
+
+2009-11-10  Daniel Newton  <djpnewton@gmail.com>
+
+	* filter/BusDogMain.c:
 	* gui/busdog/Native.cs: Add tracing of usb descriptors
 
 2009-11-09  Daniel Newton  <djpnewton@gmail.com>

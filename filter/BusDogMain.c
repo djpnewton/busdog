@@ -24,6 +24,11 @@ WDFDEVICE       ControlDevice = NULL;
 //
 WDFQUEUE        BufferRequestQueue;
 
+//
+// Automaticaly trace new devices as they are added if true
+//
+BOOLEAN         BusDogAutoTrace = FALSE;
+
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text (PAGE, BusDogIoDeviceControl)
 #pragma alloc_text (PAGE, BusDogCreateControlDevice)
@@ -232,7 +237,7 @@ Return Value:
     context->MagicNumber = DEVICE_CONTEXT_MAGIC;
     context->HasDeviceId = FALSE;
     context->DeviceId = -1;
-    context->FilterEnabled = FALSE;
+    context->FilterEnabled = BusDogAutoTrace;
 
     // Figure out where we'll be sending all our requests
     //  once we're done with them
@@ -632,6 +637,7 @@ Return Value:
     PVOID                  outputBuffer = NULL;
     PBUSDOG_FILTER_ENABLED filterEnabledBuffer;
     PBUSDOG_DEBUG_LEVEL    debugLevelBuffer;
+    PBUSDOG_AUTOTRACE      autotraceBuffer;
     size_t                 realLength;
     size_t                 bytesWritten;
     size_t                 bytesNeeded;
@@ -980,6 +986,92 @@ Return Value:
             //
 
             BusDogDebugLevel = debugLevelBuffer->DebugLevel;
+
+            WdfRequestCompleteWithInformation(Request, status, realLength);
+
+            return;
+
+        case IOCTL_BUSDOG_GET_AUTOTRACE:
+
+            if (InputBufferLength) 
+            {
+
+                BusDogPrint(BUSDOG_DEBUG_WARN, "Sorry buddy...No input buffers allowed\n");
+
+                WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
+
+                return;
+
+            }
+
+            BusDogPrint(BUSDOG_DEBUG_INFO, "get autotrace value\n");
+
+            //
+            // Get the output buffer...
+            //
+            status = WdfRequestRetrieveOutputBuffer(Request,
+                    sizeof(BUSDOG_AUTOTRACE),
+                    &outputBuffer,
+                    &realLength);
+
+            if (!NT_SUCCESS(status)) 
+            {
+                BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfRequestRetrieveOutputBuffer failed - 0x%x\n",
+                            status);
+
+                WdfRequestComplete(Request, status);
+
+                return;
+            }
+
+            //
+            // Fill buffer with autotrace value
+            //
+            
+            ((PBUSDOG_AUTOTRACE)outputBuffer)->AutoTrace = BusDogAutoTrace;
+            
+            //
+            // Yes! Return to the user, telling them how many bytes
+            //  we copied....
+            //
+            WdfRequestCompleteWithInformation(Request, 
+                    STATUS_SUCCESS,
+                    realLength);
+
+            return;
+
+        case IOCTL_BUSDOG_SET_AUTOTRACE:
+
+            if (!InputBufferLength)
+            {
+                WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
+
+                return;
+            }
+
+            //
+            // Get the input buffer...
+            //
+            status = WdfRequestRetrieveInputBuffer(Request,
+                    sizeof(BUSDOG_AUTOTRACE),
+                    (PVOID *)&autotraceBuffer,
+                    &realLength);
+
+            if (!NT_SUCCESS(status)) 
+            {
+                BusDogPrint(BUSDOG_DEBUG_ERROR, "WdfRequestRetrieveOutputBuffer failed - 0x%x\n",
+                            status);
+
+                WdfRequestComplete(Request, status);
+
+                return;
+            }
+
+            //
+            // Set autotrace
+            //
+
+            BusDogAutoTrace = autotraceBuffer->AutoTrace;
 
             WdfRequestCompleteWithInformation(Request, status, realLength);
 
