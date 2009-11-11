@@ -350,6 +350,113 @@ namespace busdog
         }
     }
 
+    internal class DeviceIOCTL
+    {
+        [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        static extern IntPtr CreateFile(
+            string fileName,
+            [MarshalAs(UnmanagedType.U4)] FileAccess fileAccess,
+            [MarshalAs(UnmanagedType.U4)] FileShare fileShare,
+            int securityAttributes,
+            [MarshalAs(UnmanagedType.U4)] FileMode creationDisposition,
+            [MarshalAs(UnmanagedType.U4)] FileOptions flags,
+            IntPtr overlapped);
+
+        [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern bool DeviceIoControl(
+            SafeFileHandle hDevice,
+            [MarshalAs(UnmanagedType.U4)]uint dwIoControlCode,
+            IntPtr lpInBuffer,
+            [MarshalAs(UnmanagedType.U4)]uint nInBufferSize,
+            IntPtr lpOutBuffer,
+            [MarshalAs(UnmanagedType.U4)]uint nOutBufferSize,
+            [MarshalAs(UnmanagedType.U4)]out uint lpBytesReturned,
+            IntPtr lpOverlapped
+        );
+
+        [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        static extern bool CancelIo(
+            SafeFileHandle hFile);
+
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        static extern UInt32 WaitForSingleObject(IntPtr hHandle, UInt32 dwMilliseconds);
+
+        /// <summary>
+        /// The wait object signaled
+        /// </summary>
+        public const int WAIT_OBJECT_0 = 0;
+
+        SafeFileHandle hDevice = null;
+        DeviceIoOverlapped overlapped = null;
+        ManualResetEvent hEvent = null;
+
+        bool async;
+
+        public DeviceIOCTL(string devicePath, bool async)
+        {
+            this.async = async;
+            FileOptions fileOps = FileOptions.None;
+            if (async)
+            {
+                overlapped = new DeviceIoOverlapped();
+                hEvent = new ManualResetEvent(false);
+                fileOps = FileOptions.Asynchronous;
+            }
+            hDevice = new SafeFileHandle(
+                CreateFile(
+                    devicePath,
+                    FileAccess.ReadWrite,
+                    FileShare.ReadWrite,
+                    0,
+                    FileMode.Open,
+                    fileOps,
+                    IntPtr.Zero),
+                true);
+        }
+
+        public bool DeviceIoControl(
+            uint code,
+            IntPtr lpInBuffer,
+            uint nInBufferSize,
+            IntPtr lpOutBuffer,
+            uint nOutBufferSize,
+            out uint lpBytesReturned)
+        {
+            IntPtr ol = IntPtr.Zero;
+            if (async)
+            {
+                overlapped.ClearAndSetEvent(hEvent.SafeWaitHandle.DangerousGetHandle());
+                ol = overlapped.GlobalOverlapped;
+            }
+            return DeviceIoControl(
+                hDevice,
+                code,
+                lpInBuffer,
+                nInBufferSize,
+                lpOutBuffer,
+                nOutBufferSize,
+                out lpBytesReturned,
+                ol);
+        }
+
+        public bool WaitForOverlappedIo(UInt32 dwMilliseconds, out uint bytesRead)
+        {
+            bytesRead = 0;
+            uint res = WaitForSingleObject(hEvent.SafeWaitHandle.DangerousGetHandle(), dwMilliseconds);
+            if (res == WAIT_OBJECT_0)
+            {
+                bytesRead = (uint)overlapped.InternalHigh.ToInt32();
+                return true;
+            }
+            return false;
+        }
+
+        public bool CancelIo()
+        {
+            return CancelIo(hDevice);
+        }
+    }
+
     public class Native
     {
         uint outBufferSize = 0x10000;
@@ -357,16 +464,19 @@ namespace busdog
         uint inBufferSize = 0x10000;
         IntPtr inBuffer;
 
+        DeviceIOCTL devIO;
         Thread TraceBufferThread;
 
         public event EventHandler<FilterTraceArrivedEventArgs> FilterTraceArrived;
+
+        const string busdogPath = "\\\\.\\BusDogFilter";
  
         public Native()
         {
             outBuffer = Marshal.AllocHGlobal((int)outBufferSize);
             inBuffer = Marshal.AllocHGlobal((int)inBufferSize);
 
-            InitHandles();
+            devIO = new DeviceIOCTL(busdogPath, false);
 
             TraceBufferThread = new Thread(TraceBufRead);
         }
@@ -405,33 +515,24 @@ namespace busdog
         /// </summary>
         public const int ERROR_IO_PENDING = 997;
 
-        /// <summary>
-        /// The wait object signaled
-        /// </summary>
-        public const int WAIT_OBJECT_0 = 0;
-
         void TraceBufRead()
         {
             try
             {
-                DeviceIoOverlapped deviceIoOverlapped = new DeviceIoOverlapped();
-                ManualResetEvent hEvent = new ManualResetEvent(false);
+                DeviceIOCTL devIO = new DeviceIOCTL(busdogPath, true);
 
                 while (true)
                 {
                     uint bytesReturned;
                     // send the get trace buffer command to the driver
-                    deviceIoOverlapped.ClearAndSetEvent(hEvent.SafeWaitHandle.DangerousGetHandle());
                     bool result =
-                    DeviceIoControl(
-                        hDeviceTraceBufThread,
-                        IOCTL_BUSDOG_GET_BUFFER,
-                        IntPtr.Zero,
-                        0,
-                        outBuffer,
-                        outBufferSize,
-                        out bytesReturned,
-                        deviceIoOverlapped.GlobalOverlapped);
+                     devIO.DeviceIoControl(
+                         IOCTL_BUSDOG_GET_BUFFER,
+                         IntPtr.Zero,
+                         0,
+                         outBuffer,
+                         outBufferSize,
+                         out bytesReturned);
                     if (!result)
                     {
                         int err = Marshal.GetLastWin32Error();
@@ -441,10 +542,9 @@ namespace busdog
                             while (true)
                             {
                                 // keep checking if the I/O request has been fufilled (abort after 500ms so our thread can be killed)
-                                if (WaitForSingleObject(deviceIoOverlapped.EventHandle, 500) == WAIT_OBJECT_0)
+                                if (devIO.WaitForOverlappedIo(500, out bytesReturned))
                                 {
                                     result = true;
-                                    bytesReturned = (uint)deviceIoOverlapped.InternalHigh.ToInt32();
                                     break;
                                 }
                             }
@@ -457,7 +557,7 @@ namespace busdog
                         // we have a result so now we convert the buffer into a trace list and call the event
                         if (FilterTraceArrived != null)
                             FilterTraceArrived(
-                                this, 
+                                this,
                                 new FilterTraceArrivedEventArgs(GetTraceList(outBuffer, outBufferSize, bytesReturned)));
                     }
                 }
@@ -465,10 +565,15 @@ namespace busdog
             catch (ThreadAbortException)
             {
                 // We will cancel any pending IO on this thread before exiting
-                CancelIo(hDeviceTraceBufThread);
+                devIO.CancelIo();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(ex.Message);
             }
         }
 
+        #region IOCTL definitions
         static uint CTL_CODE(uint deviceType, uint function, uint method, uint access)
         {
             return ((deviceType) << 16) | ((access) << 14) | ((function) << 2) | (method);
@@ -513,8 +618,10 @@ namespace busdog
         uint IOCTL_BUSDOG_SET_AUTOTRACE = CTL_CODE(FILE_DEVICE_BUSDOG,
                                          2058,               
                                          METHOD_BUFFERED,    
-                                         FILE_WRITE_ACCESS);  
+                                         FILE_WRITE_ACCESS);
+        #endregion
 
+        #region busdog public structures
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
         struct BUSDOG_DEVICE_ID
         {
@@ -556,96 +663,14 @@ namespace busdog
                 AutoTrace = Convert.ToByte(autoTrace);
             }
         }
-
-        [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        static extern IntPtr CreateFile(
-            string fileName,
-            [MarshalAs(UnmanagedType.U4)] FileAccess fileAccess,
-            [MarshalAs(UnmanagedType.U4)] FileShare fileShare,
-            int securityAttributes,
-            [MarshalAs(UnmanagedType.U4)] FileMode creationDisposition,
-            [MarshalAs(UnmanagedType.U4)] FileOptions flags,
-            IntPtr overlapped);
-
-        [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        public static extern bool DeviceIoControl(
-            SafeFileHandle hDevice,
-            [MarshalAs(UnmanagedType.U4)]uint dwIoControlCode, 
-            IntPtr lpInBuffer, 
-            [MarshalAs(UnmanagedType.U4)]uint nInBufferSize, 
-            IntPtr lpOutBuffer, 
-            [MarshalAs(UnmanagedType.U4)]uint nOutBufferSize, 
-            [MarshalAs(UnmanagedType.U4)]out uint lpBytesReturned,
-            IntPtr lpOverlapped
-        );
-
-        [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        static extern bool CancelIo(
-            SafeFileHandle hFile);
-
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        static extern UInt32 WaitForSingleObject(IntPtr hHandle, UInt32 dwMilliseconds);
-
-        // blocking handle for general I/O (get device list, enable/disable tracing etc)
-        SafeFileHandle hDevice = null;
-        // non-blocking handle for trace buffer I/O, for use in the trace buffer thread
-        SafeFileHandle hDeviceTraceBufThread = null;
-
-        void InitHandles()
-        {
-            if (hDevice == null)
-            {
-                hDevice = new SafeFileHandle(
-                    CreateFile(
-                        "\\\\.\\BusDogFilter",
-                        FileAccess.ReadWrite,
-                        FileShare.ReadWrite,
-                        0,
-                        FileMode.Open,
-                        0,
-                        IntPtr.Zero),
-                    true);
-            }
-            if (hDeviceTraceBufThread == null)
-            {
-                hDeviceTraceBufThread = new SafeFileHandle(
-                    CreateFile(
-                        "\\\\.\\BusDogFilter",
-                        FileAccess.ReadWrite,
-                        FileShare.ReadWrite,
-                        0,
-                        FileMode.Open,
-                        FileOptions.Asynchronous,
-                        IntPtr.Zero),
-                    true);
-            }
-        }
-
-        public bool DeviceIoControl(
-            uint code,
-            IntPtr lpInBuffer, 
-            uint nInBufferSize, 
-            IntPtr lpOutBuffer, 
-            uint nOutBufferSize, 
-            out uint lpBytesReturned)
-        {
-            return DeviceIoControl(
-                hDevice,
-                code,
-                lpInBuffer,
-                nInBufferSize,
-                lpOutBuffer,
-                nOutBufferSize,
-                out lpBytesReturned,
-                IntPtr.Zero);
-        }
+        #endregion
 
         public bool GetDeviceList(out List<DeviceId> deviceIds)
         {
             deviceIds = new List<DeviceId>();
             uint bytesReturned;
             bool result =
-                DeviceIoControl(IOCTL_BUSDOG_GET_DEVICE_LIST,
+                devIO.DeviceIoControl(IOCTL_BUSDOG_GET_DEVICE_LIST,
                     IntPtr.Zero,
                     0,
                     outBuffer,
@@ -680,8 +705,8 @@ namespace busdog
             GCHandle h = GCHandle.Alloc(new BUSDOG_FILTER_ENABLED(deviceId, enabled), GCHandleType.Pinned);
             IntPtr p = h.AddrOfPinnedObject();
             uint bytesReturned;
-            bool result = 
-                DeviceIoControl(IOCTL_BUSDOG_SET_DEVICE_FILTER_ENABLED,
+            bool result =
+                devIO.DeviceIoControl(IOCTL_BUSDOG_SET_DEVICE_FILTER_ENABLED,
                     p,
                     (uint)Marshal.SizeOf(typeof(BUSDOG_FILTER_ENABLED)),
                     IntPtr.Zero,
@@ -726,7 +751,7 @@ namespace busdog
         public bool StartTracing()
         {
             uint bytesReturned;
-            return DeviceIoControl(IOCTL_BUSDOG_START_FILTERING,
+            return devIO.DeviceIoControl(IOCTL_BUSDOG_START_FILTERING,
                     IntPtr.Zero,
                     0,
                     IntPtr.Zero,
@@ -737,7 +762,7 @@ namespace busdog
         public bool StopTracing()
         {
             uint bytesReturned;
-            return DeviceIoControl(IOCTL_BUSDOG_STOP_FILTERING,
+            return devIO.DeviceIoControl(IOCTL_BUSDOG_STOP_FILTERING,
                     IntPtr.Zero,
                     0,
                     IntPtr.Zero,
@@ -751,7 +776,7 @@ namespace busdog
             IntPtr p = h.AddrOfPinnedObject();
             uint bytesReturned;
             bool result =
-                DeviceIoControl(IOCTL_BUSDOG_SET_AUTOTRACE,
+                devIO.DeviceIoControl(IOCTL_BUSDOG_SET_AUTOTRACE,
                     p,
                     (uint)Marshal.SizeOf(typeof(BUSDOG_AUTOTRACE)),
                     IntPtr.Zero,
@@ -771,7 +796,7 @@ namespace busdog
             IntPtr p = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(BUSDOG_AUTOTRACE)));
             uint bytesReturned;
             bool result =
-                DeviceIoControl(IOCTL_BUSDOG_GET_AUTOTRACE,
+                devIO.DeviceIoControl(IOCTL_BUSDOG_GET_AUTOTRACE,
                     IntPtr.Zero,
                     0,
                     p,
