@@ -1663,6 +1663,25 @@ BusDogProcessInternalDeviceControl(
 
                         break;
                     }
+                    case URB_FUNCTION_ISOCH_TRANSFER:
+                    {
+                        struct _URB_ISOCH_TRANSFER* pTransfer =  (struct _URB_ISOCH_TRANSFER*)pUrb;
+                        *bRead = (BOOLEAN)(pTransfer->TransferFlags & USBD_TRANSFER_DIRECTION_IN);
+
+                        BusDogPrint(BUSDOG_DEBUG_INFO, "        URB_FUNCTION_ISOCH_TRANSFER\n");
+
+                        __BusDogProcessUrbTransfer(
+                                Device,
+                                Context,
+                                pUrb,
+                                pTransfer->TransferBuffer,
+                                pTransfer->TransferBufferMDL,
+                                pTransfer->TransferBufferLength,
+                                bCompletion,
+                                *bRead);        
+
+                        break;
+                    }
                     case URB_FUNCTION_ABORT_PIPE:
                     case URB_FUNCTION_RESET_PIPE:
                     case URB_FUNCTION_SYNC_RESET_PIPE:

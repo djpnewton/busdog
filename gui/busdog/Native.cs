@@ -179,7 +179,7 @@ namespace busdog
                                 case URB_FUNCTION_SET_DESCRIPTOR_TO_INTERFACE:
                                     return "URB_FUNCTION_SET_DESCRIPTOR_TO_INTERFACE";
                                 default:
-                                    // urb is a bulk/interrupt or control transfer
+                                    // urb is a bulk/interrupt or control transfer (or isochronous)
                                     return string.Format("{0}  (USB URB Function: {1})",
                                         (BUSDOG_REQUEST_USB_DIRECTION)Params.p2 == BUSDOG_REQUEST_USB_DIRECTION.BusDogUsbIn ? "In" : "Out",
                                         Params.p3);
