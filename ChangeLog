@@ -1,3 +1,8 @@
+2009-11-18  Daniel Newton  <djpnewton@gmail.com>
+
+	* gui/busdog/DriverManagement.cs:
+	* gui/busdog/MainForm.cs: Added detection of mismatched GUI/driver combo
+
 2009-11-16  Daniel Newton  <djpnewton@gmail.com>
 
 	* filter/BusDogMain.c: Added support for tracing isochronous USB transfers
