@@ -13,6 +13,31 @@ namespace busdog
 {
     static class DriverManagement
     {
+        #region P/Invoke
+
+        [StructLayout(LayoutKind.Sequential)]
+        public class QUERY_SERVICE_CONFIG
+        {
+            [MarshalAs(System.Runtime.InteropServices.UnmanagedType.U4)]
+            public UInt32 dwServiceType;
+            [MarshalAs(System.Runtime.InteropServices.UnmanagedType.U4)]
+            public UInt32 dwStartType;
+            [MarshalAs(System.Runtime.InteropServices.UnmanagedType.U4)]
+            public UInt32 dwErrorControl;
+            [MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPWStr)]
+            public String lpBinaryPathName;
+            [MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPWStr)]
+            public String lpLoadOrderGroup;
+            [MarshalAs(System.Runtime.InteropServices.UnmanagedType.U4)]
+            public UInt32 dwTagID;
+            [MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPWStr)]
+            public String lpDependencies;
+            [MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPWStr)]
+            public String lpServiceStartName;
+            [MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPWStr)]
+            public String lpDisplayName;
+        };
+
         [DllImport("kernel32")]
         public extern static IntPtr LoadLibrary(string libraryName);
 
@@ -28,28 +53,50 @@ namespace busdog
         [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         static extern IntPtr OpenService(IntPtr hSCManager, string lpServiceName, uint dwDesiredAccess);
 
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern Boolean QueryServiceConfig(IntPtr hService, IntPtr intPtrQueryConfig, UInt32 cbBufSize, out UInt32 pcbBytesNeeded);
+
         [DllImport("advapi32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         static extern bool CloseServiceHandle(IntPtr hSCObject);
 
-        public static bool IsDriverInstalled(out bool drvInstalled)
+        #endregion
+
+        public static bool IsDriverInstalled(out FileVersionInfo versionInfo)
         {
-            drvInstalled = false;
+            versionInfo = null;
+            bool drvInstalled = false;
             const uint GENERIC_READ = 0x80000000;
+            // open service manager
             IntPtr scmgr = OpenSCManager(null, null, GENERIC_READ);
             if (!scmgr.Equals(IntPtr.Zero))
             {
-                const uint SERVICE_QUERY_STATUS       = 0x00004;
-                IntPtr service = OpenService(scmgr, "busdog", SERVICE_QUERY_STATUS);
+                // open busdog service
+                const uint SERVICE_QUERY_CONFIG = 0x00000001;
+                IntPtr service = OpenService(scmgr, "busdog", SERVICE_QUERY_CONFIG);
                 if (!service.Equals(IntPtr.Zero))
                 {
-                    drvInstalled = true;
+                    // find the busdog binary and get its file version
+                    uint dwBytesNeeded = 0;
+                    QueryServiceConfig(service, IntPtr.Zero, dwBytesNeeded, out dwBytesNeeded);
+                    IntPtr ptr = Marshal.AllocHGlobal((int)dwBytesNeeded);
+                    if (QueryServiceConfig(service, ptr, dwBytesNeeded, out dwBytesNeeded))
+                    {
+                        // success! found busdog service and binary path
+                        QUERY_SERVICE_CONFIG qsConfig = new QUERY_SERVICE_CONFIG();
+                        Marshal.PtrToStructure(ptr, qsConfig);
+                        // get version info of busdog binary
+                        string sysroot = Environment.ExpandEnvironmentVariables("%systemroot%");
+                        versionInfo = FileVersionInfo.GetVersionInfo(sysroot + "\\" + qsConfig.lpBinaryPathName);
+                        // driver is installed and got all needed info
+                        drvInstalled = true;
+                    }
+                    Marshal.FreeHGlobal(ptr);
                     CloseServiceHandle(service);
                 }
                 CloseServiceHandle(scmgr);
-                return true;
             }
-            return false;
+            return drvInstalled;
         }
 
         delegate uint WdfCoinstallInvoker(

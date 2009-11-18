@@ -296,22 +296,44 @@ namespace busdog
 
         private void CheckDriverInstallation()
         {
-            bool drvInstalled;
-            if (DriverManagement.IsDriverInstalled(out drvInstalled))
+            bool installDriver = false;
+            System.Diagnostics.FileVersionInfo busdogDriverVersion;
+            // show driver incompatablities
+            if (DriverManagement.IsDriverInstalled(out busdogDriverVersion))
             {
-                if (!drvInstalled)
+                string thatVersion = string.Format("{0}.{1}",
+                    busdogDriverVersion.FileMajorPart,
+                    busdogDriverVersion.FileMinorPart);
+                Version assVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+                string thisVersion = string.Format("{0}.{1}",
+                    assVersion.Major, 
+                    assVersion.Minor);
+                if (thatVersion != thisVersion)
                 {
                     if (MessageBox.Show(
+                            string.Format("BusDog Filter Driver version ({0}) does not match the GUI version ({1}). Would you like to install BusDog Filter Driver version {1} now?",
+                                    thatVersion,
+                                    thisVersion),
+                            "Driver Version Mismatch",
+                            MessageBoxButtons.YesNo) == DialogResult.Yes)
+                        installDriver = true;
+                }
+            }
+            else
+            {
+                if (MessageBox.Show(
                         "BusDog Filter Driver is not installed. Do you want to install it now?",
                         "Driver Not Installed",
                         MessageBoxButtons.YesNo) == DialogResult.Yes)
-                    {
-                        if (VistaSecurity.IsAdmin())
-                            InstallDriver();
-                        else
-                            VistaSecurity.RestartElevated(StartupActions.InstallDriver.ToString());
-                    }
-                }
+                    installDriver = true;
+            }
+            // install driver if one of the complicated if descision trees above set 'installDriver'
+            if (installDriver)
+            {
+                if (VistaSecurity.IsAdmin())
+                    InstallDriver();
+                else
+                    VistaSecurity.RestartElevated(StartupActions.InstallDriver.ToString());
             }
         }
 
