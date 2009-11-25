@@ -1,3 +1,10 @@
+2009-11-25  Daniel Newton  <djpnewton@gmail.com>
+
+	* gui/busdog/MainForm.cs:
+	* gui/busdog/MainForm.Designer.cs:
+	* gui/busdog/MainForm.resx: Added a maximum traces option to the trace list
+	view
+
 2009-11-18  Daniel Newton  <djpnewton@gmail.com>
 
 	* gui/busdog/DriverManagement.cs:

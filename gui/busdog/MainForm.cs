@@ -22,6 +22,7 @@ namespace busdog
         DeviceManagement devManage = new DeviceManagement();
         IntPtr devNotificationsHandle;
         FilterTrace prevTrace = new FilterTrace();
+        uint maxTraces = 0;
 
         public MainForm()
         {
@@ -34,6 +35,8 @@ namespace busdog
             }
             else
                 this.Text += " (Elevated)";
+
+            cbMaxTraces.SelectedIndex = 0;
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -165,6 +168,12 @@ namespace busdog
             if (DoesTracePassFilters(filterTrace, FilterInclude.Include) &&
                 DoesTracePassFilters(filterTrace, FilterInclude.Exclude))
             {
+                // cull traces
+                if (maxTraces > 0)
+                {
+                    while (lvTraces.Items.Count >= maxTraces)
+                        lvTraces.Items.RemoveAt(0);
+                }
                 // Create a new row.
                 ListViewItem item = new ListViewItem(filterTrace.DeviceId.ToString());
                 for (int i = 1; i < lvTraces.Columns.Count; i++)
@@ -426,6 +435,17 @@ namespace busdog
         private void cbAutoTrace_CheckedChanged(object sender, EventArgs e)
         {
             native.SetAutoTrace(cbAutoTrace.Checked);
+        }
+
+        private void cbMaxTraces_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (cbMaxTraces.SelectedIndex == 0)
+                maxTraces = 0;
+            else
+            {
+                string s = cbMaxTraces.Items[cbMaxTraces.SelectedIndex].ToString();
+                maxTraces = Convert.ToUInt32(s);
+            }
         }
     }
 

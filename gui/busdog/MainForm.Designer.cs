@@ -32,6 +32,7 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.tabControl = new System.Windows.Forms.TabControl();
             this.tabDevices = new System.Windows.Forms.TabPage();
+            this.cbAutoTrace = new System.Windows.Forms.CheckBox();
             this.tvDevices = new System.Windows.Forms.TreeView();
             this.tabTrace = new System.Windows.Forms.TabPage();
             this.tscTrace = new System.Windows.Forms.ToolStripContainer();
@@ -45,6 +46,9 @@
             this.tsTrace = new System.Windows.Forms.ToolStrip();
             this.btnStartTraces = new System.Windows.Forms.ToolStripButton();
             this.btnClearTraces = new System.Windows.Forms.ToolStripButton();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.lbMaxTraces = new System.Windows.Forms.ToolStripLabel();
+            this.cbMaxTraces = new System.Windows.Forms.ToolStripComboBox();
             this.tabSetup = new System.Windows.Forms.TabPage();
             this.filterControl = new busdog.FilterControl();
             this.gbTraceList = new System.Windows.Forms.GroupBox();
@@ -58,7 +62,6 @@
             this.btnReinstall = new System.Windows.Forms.Button();
             this.btnUninstall = new System.Windows.Forms.Button();
             this.tmrDeviceChange = new System.Windows.Forms.Timer(this.components);
-            this.cbAutoTrace = new System.Windows.Forms.CheckBox();
             this.tabControl.SuspendLayout();
             this.tabDevices.SuspendLayout();
             this.tabTrace.SuspendLayout();
@@ -95,6 +98,18 @@
             this.tabDevices.TabIndex = 0;
             this.tabDevices.Text = "Devices";
             this.tabDevices.UseVisualStyleBackColor = true;
+            // 
+            // cbAutoTrace
+            // 
+            this.cbAutoTrace.AutoSize = true;
+            this.cbAutoTrace.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.cbAutoTrace.Location = new System.Drawing.Point(3, 340);
+            this.cbAutoTrace.Name = "cbAutoTrace";
+            this.cbAutoTrace.Size = new System.Drawing.Size(371, 17);
+            this.cbAutoTrace.TabIndex = 2;
+            this.cbAutoTrace.Text = "Automatically trace new devices";
+            this.cbAutoTrace.UseVisualStyleBackColor = true;
+            this.cbAutoTrace.CheckedChanged += new System.EventHandler(this.cbAutoTrace_CheckedChanged);
             // 
             // tvDevices
             // 
@@ -191,10 +206,13 @@
             this.tsTrace.Dock = System.Windows.Forms.DockStyle.None;
             this.tsTrace.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.btnStartTraces,
-            this.btnClearTraces});
+            this.btnClearTraces,
+            this.toolStripSeparator1,
+            this.lbMaxTraces,
+            this.cbMaxTraces});
             this.tsTrace.Location = new System.Drawing.Point(3, 0);
             this.tsTrace.Name = "tsTrace";
-            this.tsTrace.Size = new System.Drawing.Size(83, 25);
+            this.tsTrace.Size = new System.Drawing.Size(311, 25);
             this.tsTrace.TabIndex = 4;
             this.tsTrace.Text = "tsTrace";
             // 
@@ -218,6 +236,29 @@
             this.btnClearTraces.Size = new System.Drawing.Size(36, 22);
             this.btnClearTraces.Text = "Clear";
             this.btnClearTraces.Click += new System.EventHandler(this.btnClearTraces_Click);
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(6, 25);
+            // 
+            // lbMaxTraces
+            // 
+            this.lbMaxTraces.Name = "lbMaxTraces";
+            this.lbMaxTraces.Size = new System.Drawing.Size(66, 22);
+            this.lbMaxTraces.Text = "Max Traces:";
+            // 
+            // cbMaxTraces
+            // 
+            this.cbMaxTraces.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cbMaxTraces.Items.AddRange(new object[] {
+            "Unlimited",
+            "100",
+            "1000",
+            "10000"});
+            this.cbMaxTraces.Name = "cbMaxTraces";
+            this.cbMaxTraces.Size = new System.Drawing.Size(121, 25);
+            this.cbMaxTraces.SelectedIndexChanged += new System.EventHandler(this.cbMaxTraces_SelectedIndexChanged);
             // 
             // tabSetup
             // 
@@ -378,18 +419,6 @@
             this.tmrDeviceChange.Interval = 1000;
             this.tmrDeviceChange.Tick += new System.EventHandler(this.tmrDeviceChange_Tick);
             // 
-            // cbAutoTrace
-            // 
-            this.cbAutoTrace.AutoSize = true;
-            this.cbAutoTrace.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.cbAutoTrace.Location = new System.Drawing.Point(3, 340);
-            this.cbAutoTrace.Name = "cbAutoTrace";
-            this.cbAutoTrace.Size = new System.Drawing.Size(371, 17);
-            this.cbAutoTrace.TabIndex = 2;
-            this.cbAutoTrace.Text = "Automatically trace new devices";
-            this.cbAutoTrace.UseVisualStyleBackColor = true;
-            this.cbAutoTrace.CheckedChanged += new System.EventHandler(this.cbAutoTrace_CheckedChanged);
-            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -450,6 +479,9 @@
         private System.Windows.Forms.CheckBox cbLength;
         private FilterControl filterControl;
         private System.Windows.Forms.CheckBox cbAutoTrace;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
+        private System.Windows.Forms.ToolStripLabel lbMaxTraces;
+        private System.Windows.Forms.ToolStripComboBox cbMaxTraces;
     }
 }
 
