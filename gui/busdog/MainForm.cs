@@ -5,6 +5,7 @@ using System.Data;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
+using System.Runtime.InteropServices;
 
 namespace busdog
 {
@@ -150,14 +151,14 @@ namespace busdog
             {
                 if (tabControl.SelectedTab == tabTrace)
                 {
-                    SuspendLayout();
+                    lvTraces.SuspendDrawing();
 
                     foreach (FilterTrace filterTrace in e.Traces)
                     {
                         AddFilterTrace(filterTrace);
                     }
 
-                    ResumeLayout(true);
+                    lvTraces.ResumeDrawing();
                 }
             }
         }
@@ -455,6 +456,22 @@ namespace busdog
             : base()
         {
             SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
+        }
+
+        [DllImport("user32.dll")]
+        public static extern int SendMessage(IntPtr hWnd, Int32 wMsg, bool wParam, Int32 lParam);
+
+        private const int WM_SETREDRAW = 11;
+
+        public void SuspendDrawing()
+        {
+            SendMessage(Handle, WM_SETREDRAW, false, 0);
+        }
+
+        public void ResumeDrawing()
+        {
+            SendMessage(Handle, WM_SETREDRAW, true, 0);
+            Refresh();
         }
     }
 }

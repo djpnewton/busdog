@@ -559,6 +559,8 @@ namespace busdog
                             FilterTraceArrived(
                                 this,
                                 new FilterTraceArrivedEventArgs(GetTraceList(outBuffer, outBufferSize, bytesReturned)));
+                        // stall trace stream to allow main thread to have a turn now and then
+                        Thread.Sleep(10);
                     }
                 }
             }
