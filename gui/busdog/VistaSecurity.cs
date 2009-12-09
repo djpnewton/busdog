@@ -1,3 +1,4 @@
+// thanks to http://www.codeproject.com/KB/vista-security/UAC_Shield_for_Elevation.aspx
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -45,13 +46,13 @@ namespace busdog
         /// <summary>
         /// Restart the current process with administrator credentials
         /// </summary>
-        internal static void RestartElevated(string args)
+        internal static void RestartElevated(string cmdArgs)
         {
             ProcessStartInfo startInfo = new ProcessStartInfo();
             startInfo.UseShellExecute = true;
             startInfo.WorkingDirectory = Environment.CurrentDirectory;
             startInfo.FileName = Application.ExecutablePath;
-            startInfo.Arguments = args;
+            startInfo.Arguments = cmdArgs;
             startInfo.Verb = "runas";
             try
             {
