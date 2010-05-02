@@ -1,0 +1,576 @@
+Index: vusb-analyzer
+===================================================================
+--- vusb-analyzer	(revision 20)
++++ vusb-analyzer	(working copy)
+@@ -22,7 +22,7 @@
+     follower = Log.Follower(filename, parser(sink.queue), ui.status.queue, tailMode)
+     Decode.attachView(ui)
+ 
+-    gtk.gdk.threads_init()
++    #gtk.gdk.threads_init()
+     follower.start()
+     try:
+         gtk.main()
+@@ -35,7 +35,7 @@
+     ui.window.set_title("%s - VUsb Analyzer" % " / ".join([
+         os.path.basename(f) for f in files]))
+ 
+-    gtk.gdk.threads_init()
++    #gtk.gdk.threads_init()
+     followers = []
+ 
+     for f, view in zip(files, ui.views):
+Index: VUsbTools/Canvas.py
+===================================================================
+--- VUsbTools/Canvas.py	(revision 0)
++++ VUsbTools/Canvas.py	(revision 0)
+@@ -0,0 +1,240 @@
++#
++# VUsbTools.Canvas
++#  Daniel Newton <djpnewton@gmail.com>
++#
++# This implements the basic cairo canvas used in the 
++# vusb-analyzer user interface.
++#
++# Copyright (C) 2009 Daniel Newton. Licensed under the MIT
++# License, please see the README.txt. All rights reserved.
++#
++
++import gtk, gobject
++
++class Canvas(gtk.DrawingArea):
++
++    def __init__(self):
++        gtk.DrawingArea.__init__(self)
++        self._figures = []
++
++    def add(self, figure):
++        self._figures.append(figure)
++        figure.set_canvas(self)
++
++    def update(self, fig, inflate = 0):
++        if inflate:
++            gtk.DrawingArea.queue_draw_area(self, int(fig.x - inflate), int(fig.y - inflate), 
++                    int(fig.width + inflate * 2), int(fig.height + inflate * 2))
++        else:
++            gtk.DrawingArea.queue_draw_area(self, int(fig.x), int(fig.y), int(fig.width), int(fig.height))
++
++    def do_realize(self):
++        gtk.DrawingArea.do_realize(self)
++
++    def do_unrealize(self):
++        gtk.DrawingArea.do_unrealize(self)
++
++    def do_expose_event(self, event):
++        """
++        Render the canvas
++        """
++        # create cairo context
++        cr = self.window.cairo_create()
++
++        # extract update area parameters
++        area = event.area
++        x, y, w, h = area.x, area.y, area.width, area.height
++
++        # clip drawing to update area
++        cr.rectangle(x, y, w, h)
++        cr.clip()
++
++        # draw figures
++        for fig in self._figures:
++            cr.save()
++            fig.draw(cr)
++            cr.restore()
++
++        return False
++
++gobject.type_register(Canvas) 
++
++class Figure:
++    def __init__(self, x, y, width, height):
++        self._canvas = None
++        self.x, self.y, self.width, self.height = x, y, width, height
++        self.red = 0
++        self.green = 0
++        self.blue = 0
++
++    def draw(self, cr):
++        cr.set_source_rgb(self.red, self.green, self.blue)
++        cr.rectangle(self.x, self.y, self.width, self.height)
++        cr.fill()
++
++    def set_canvas(self, canvas):
++        self._canvas = canvas
++
++    def update(self, inflate = 0):
++        self._canvas.update(self, inflate)
++
++class RulerText(Figure):
++
++    def __init__(self, text):
++        Figure.__init__(self, 0, 0, 10, 10)
++        self.text = text
++
++    def draw(self, cr):
++        cr.translate(self.x, self.y)
++        cr.set_source_rgb(0, 0, 0)
++        cr.show_text(self.text)
++
++    def point(self, pos):
++        return 0
++
++    def set_property(self, name, val):
++        self.update()
++        if name == "x":
++            self.x = val
++        elif name == "y":
++            self.y = val
++        else:
++            print "RulerText: dont know how to set %s" % name
++        self.update()
++
++class RulerHair(Figure):
++
++    def __init__(self, width, height):
++        Figure.__init__(self, 0, 0, width, height)
++
++    def draw(self, cr):
++        cr.set_source_rgb(0, 0, 0)
++        cr.rectangle(self.x, self.y, self.width, self.height)
++        cr.fill()
++
++    def point(self, pos):
++        return 0
++
++    def set_property(self, name, val):
++        self.update()
++        if name == "x":
++            self.x = val
++        else:
++            print "RulerHair: dont know how to set %s" % name
++        self.update()
++
++class CursorHair(Figure):
++
++    def __init__(self, width, height):
++        Figure.__init__(self, 0, 0, width, height)
++
++    def draw(self, cr):
++        cr.set_source_rgb(1, 0, 0)
++        cr.rectangle(self.x, self.y, self.width, self.height)
++        cr.fill()
++
++    def point(self, pos):
++        return 0
++
++    def set_property(self, name, val):
++        self.update()
++        if name == "x":
++            self.x = val
++        else:
++            print "RulerHair: dont know how to set %s" % name
++        self.update()
++
++    def move(self, x, y):
++        self.update()
++        self.x += x
++        self.y += y
++        self.update()
++
++class PipeEvent(Figure):
++
++    def __init__(self, x, y, width, height, htmlcolor=None, rgba=None):
++        Figure.__init__(self, x, y, width, height)
++        self.rgba  = [1.0, 1.0, 1.0, 1.0]
++        if htmlcolor:
++            self.rgba[0] = int(htmlcolor[1:3], 16) / 255.0
++            self.rgba[1] = int(htmlcolor[3:5], 16) / 255.0
++            self.rgba[2] = int(htmlcolor[5:7], 16) / 255.0
++        elif rgba:
++            self.rgba[0] = rgba[0] / 255.0
++            self.rgba[1] = rgba[1] / 255.0
++            self.rgba[2] = rgba[2] / 255.0
++            self.rgba[3] = rgba[3] / 255.0
++        self.width_units = 1
++
++    def draw(self, cr):
++        cr.set_source_rgb(0, 0, 0)
++        cr.rectangle(self.x, self.y, self.width, self.height)
++        cr.set_line_width(self.width_units)
++        cr.stroke()
++        cr.set_source_rgba(self.rgba[0], self.rgba[1], self.rgba[2], self.rgba[3])
++        cr.rectangle(self.x, self.y, self.width, self.height)
++        cr.fill()
++
++    def point(self, pos):
++        return 0
++
++    def set(self, width_units):
++        self.update(self.width_units)
++        self.width_units = width_units
++        self.update(self.width_units)
++
++    def set_property(self, name, val):
++        self.update()
++        if name == "x1":
++            self.width += self.x - val
++            self.x = val
++        elif name == "x2":
++            self.width = val - self.x
++        else:
++            print "PipeEvent: dont know how to set %s" % name
++        self.update()
++
++if __name__ == "__main__":
++    import random
++
++    win = gtk.Window()
++    win.resize(200, 150)
++    win.connect("delete-event", gtk.main_quit)
++
++    vbox = gtk.VBox()
++    win.add(vbox)
++    
++    viewport = gtk.Viewport()
++    viewport.set_size_request(200, 100)
++    vbox.add(viewport)
++
++    canvas = Canvas()
++    fig = Figure(10, 10, 10, 10)
++    canvas.add(fig)
++    viewport.add(canvas)
++
++    def mouse_event(widget, event):
++        x, y, mask = widget.window.get_pointer()
++        if mask & gtk.gdk.BUTTON1_MASK:
++            fig.update()
++            fig.x = x
++            fig.y = y
++            fig.update()
++        print event, x, y, mask
++    viewport.add_events(gtk.gdk.BUTTON_PRESS_MASK |
++                      gtk.gdk.POINTER_MOTION_MASK |
++                      gtk.gdk.POINTER_MOTION_HINT_MASK)
++    viewport.connect_after("motion_notify_event", mouse_event)
++    viewport.connect_after("button_press_event", mouse_event)
++    
++    def clicked(button):
++        fig.red = random.random()
++        fig.green = random.random()
++        fig.blue = random.random()
++        fig.update()
++    button = gtk.Button("bing")
++    button.connect("clicked", clicked) 
++    vbox.add(button)
++
++    win.show_all()    
++    gtk.main()
+Index: VUsbTools/Diff.py
+===================================================================
+--- VUsbTools/Diff.py	(revision 20)
++++ VUsbTools/Diff.py	(working copy)
+@@ -164,8 +164,7 @@
+         timingBox = gtk.VBox(True)
+ 
+         paned = gtk.VPaned()
+-        if Views.gnomecanvas:
+-            paned.add1(timingBox)
++        paned.add1(timingBox)
+         paned.add2(listScroll)
+         paned.set_position(250)
+ 
+Index: VUsbTools/Types.py
+===================================================================
+--- VUsbTools/Types.py	(revision 20)
++++ VUsbTools/Types.py	(working copy)
+@@ -16,13 +16,6 @@
+ import binascii
+ 
+ try:
+-    import gnomecanvas
+-except gnomecanvas:
+-    print "Warning: You don't have gnome-canvas (or its python bindings) installed."
+-    print "         The happy timing diagram will be disabled."
+-    gnomecanvas = None
+-
+-try:
+     from psyco.classes import psyobj
+     from psyco import bind as psycoBind
+ except ImportError:
+Index: VUsbTools/Views.py
+===================================================================
+--- VUsbTools/Views.py	(revision 20)
++++ VUsbTools/Views.py	(working copy)
+@@ -3,8 +3,7 @@
+ # Micah Dowty <micah@vmware.com>
+ #
+ # This implements the GTK+ user interface
+-# for vusb-analyzer, with optional support
+-# for gnomecanvas.
++# for vusb-analyzer.
+ #
+ # Copyright (C) 2005-2009 VMware, Inc. Licensed under the MIT
+ # License, please see the README.txt. All rights reserved.
+@@ -12,16 +11,8 @@
+ 
+ from __future__ import division
+ import math, Queue, gtk, gobject
+-from VUsbTools import Types, Style
++from VUsbTools import Types, Style, Canvas
+ 
+-try:
+-    import gnomecanvas
+-except gnomecanvas:
+-    print "Warning: You don't have gnome-canvas (or its python bindings) installed."
+-    print "         The happy timing diagram will be disabled."
+-    gnomecanvas = None
+-
+-
+ class ViewContainer:
+     """A parent for several views. This holds the common hilight
+        object, and broadcasts events to all views.
+@@ -75,20 +66,23 @@
+     expand = (0, 1)
+ 
+     def __init__(self):
+-        self.canvas = gnomecanvas.Canvas(aa=True)
++        self.canvas = Canvas.Canvas()
++        self.canvasViewPort = gtk.Viewport()
++        self.canvasViewPort.set_shadow_type(gtk.SHADOW_NONE)
++        self.canvasViewPort.add(self.canvas)
+ 
++
+     def resize(self, width, height):
+         width = int(width + 0.5)
+         height = int(height + 0.5)
+         self.width = width
+         self.height = height
+-        self.canvas.set_size_request(self.expand[0] * width,
++        self.canvasViewPort.set_size_request(self.expand[0] * width,
+                                      self.expand[1] * height)
+-        self.canvas.set_scroll_region(0, 0, width, height)
++        self.canvas.set_size_request(width, height)
+ 
+-
+ class Ruler(CanvasOwner):
+-    """A ruler marking time divisions horizontally, using a GnomeCanvas"""
++    """A ruler marking time divisions horizontally, using our basic cairo canvas"""
+     timeExtent = 0
+     width = 0
+     absoluteFrame = None
+@@ -109,31 +103,26 @@
+         self.scale = scale
+         self.resizer = Resizer(self)
+         self.resizeCallbacks = []
+-        self.frameGroup = self.canvas.root().add(gnomecanvas.CanvasGroup)
+         self.extend(initialExtent)
+ 
+     def drawSecond(self, s):
+         """Draw one second worth of tick marks and such on the scale"""
+-        group = self.canvas.root().add(gnomecanvas.CanvasGroup)
++        widget = Canvas.RulerText("%.01fs" % s)
++        self.canvas.add(widget)
+ 
+-        w = group.add(gnomecanvas.CanvasText,
+-                      anchor = gtk.ANCHOR_NW,
+-                      text = "%.01fs" % s,
+-                      fill_color = 'black',
+-                      font = 'sans')
+-        self.resizer.track(w, x=(s, 5.5), y=(0, 5.5))
++        self.resizer.track(widget, x=(s, 5.5), y=(0, 15))
+ 
+         for count, scale in self.divisions:
+             h = self.tickScale[1] / scale
+             w = self.tickScale[0] / scale
+             for i in xrange(0, count):
+                 fraction = i / count
+-                self.resizer.track(group.add(gnomecanvas.CanvasRect,
+-                                             y1 = 0, y2 = h,
+-                                             fill_color = 'black'),
+-                                   x1=(s+fraction, -w),
+-                                   x2=(s+fraction, w))
+ 
++                widget = Canvas.RulerHair(w * 2, h)
++                self.canvas.add(widget)
++
++                self.resizer.track(widget, x=(s+fraction, -w))
++
+     def extend(self, s):
+         """Extend the scale to hold at least 's' seconds"""
+         newTimeExtent = int(s + 1 - 1e-10)
+@@ -147,7 +136,7 @@
+ 
+     def zoom(self, factor):
+         """Zoom in/out by the provided factor, keeping the view centered"""
+-        adj = self.canvas.get_hadjustment()
++        adj = self.canvasViewPort.get_hadjustment()
+         oldCenter = adj.value + adj.page_size // 2
+ 
+         self.scale *= factor
+@@ -326,11 +315,8 @@
+         self.ruler = ruler
+         self.cursor = cursor
+ 
+-        self.widget = canvasOwner.canvas.root().add(
+-            gnomecanvas.CanvasRect,
+-            x1 = 0, x2 = 1,
+-            y1 = 0, y2 = 10000,
+-            fill_color = 'red')
++        self.widget = Canvas.CursorHair(1, 10000)
++        canvasOwner.canvas.add(self.widget)
+ 
+         cursor.observers.append(self.move)
+         self.move(cursor.value)
+@@ -342,7 +328,7 @@
+ 
+ 
+ class TimingRowStack(CanvasOwner):
+-    """A stack of TimingRows, rendered in a GnomeCanvas"""
++    """A stack of TimingRows, rendered in our basic cairo canvas"""
+     width = 0
+     height = 0
+     rowHeight = 10
+@@ -564,34 +550,40 @@
+         tag = [None]
+         row = self.stack.pickRow(down.timestamp, up.timestamp, tag)
+ 
+-        w = self.stack.canvas.root().add(
+-            gnomecanvas.CanvasRect,
+-            y1 = row.top,
+-            y2 = row.bottom,
+-            fill_color = Style.getBarColor(dataTransaction).gdkString,
+-            outline_color = 'black',
+-            width_units = 1.0)
+-        self.view.ruler.resizer.track(w, x1=(down.timestamp, 0), x2=(up.timestamp, 0))
+-        tag[0] = w
++        widget = Canvas.PipeEvent(
++                down.timestamp, 
++                row.top,
++                up.timestamp - down.timestamp, 
++                row.bottom - row.top,
++                Style.getBarColor(dataTransaction).gdkString)
++        widget.x += down.timestamp
++        widget.y += row.top
++        self.stack.canvas.add(widget)
++        self.view.ruler.resizer.track(widget, x1=(down.timestamp, 0), x2=(up.timestamp, 0))
+ 
++        tag[0] = widget
++
+         if up.status:
+             # An error occurred, mark it in red
+             x = 2
+-            err = self.stack.canvas.root().add(
+-                gnomecanvas.CanvasRect,
+-                y1 = row.top - x,
+-                y2 = row.bottom + x,
+-                fill_color_rgba = Style.errorMarkerColor.rgba)
++
++            err = Canvas.PipeEvent(
++                    up.timestamp,
++                    row.top - x,
++                    x + x,
++                    row.bottom - row.top + x + x,
++                    rgba = (Style.errorMarkerColor.r, Style.errorMarkerColor.g, Style.errorMarkerColor.b, Style.errorMarkerColor.a))
++            self.stack.canvas.add(err)
+             self.view.ruler.resizer.track(err,
+                                           x1=(up.timestamp, -x),
+                                           x2=(up.timestamp, x))
+ 
+         # Set up links between the up/down transactions and the widget
+-        w.downTransaction = down
+-        w.upTransaction = up
+-        w.dataTransaction = dataTransaction
+-        self.view.transactionWidgets[down] = w
+-        self.view.transactionWidgets[up] = w
++        widget.downTransaction = down
++        widget.upTransaction = up
++        widget.dataTransaction = dataTransaction
++        self.view.transactionWidgets[down] = widget
++        self.view.transactionWidgets[up] = widget
+ 
+ 
+ def detectPipeClass(dev, endpoint):
+@@ -668,7 +660,7 @@
+         # The ruler at the top is in charge of our time scale
+         self.ruler = Ruler()
+         TimeCursor(self.ruler, self.ruler, self.cursor)
+-        self.ruler.canvas.set_hadjustment(self.scroll.hAdjust[0])
++        self.ruler.canvasViewPort.set_hadjustment(self.scroll.hAdjust[0])
+ 
+         # The top heading holds the ruler, and a spacer aligned with the left heading
+         leftHeadingWidth = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
+@@ -677,7 +669,7 @@
+         topHeading = gtk.HBox(False)
+         topHeading.pack_start(spacer, False, padding=self.labelPadding)
+         topHeading.pack_start(gtk.VSeparator(), False)
+-        topHeading.pack_start(self.ruler.canvas, True)
++        topHeading.pack_start(self.ruler.canvasViewPort, True)
+ 
+         # Everything except the top heading scrolls vertically using a viewport
+         viewport = gtk.Viewport(None, self.scroll.vAdjust[0])
+@@ -731,8 +723,7 @@
+ 
+         # Use the ruler widget's coordinate system to update the time cursor
+         x, y, mask = self.ruler.canvas.window.get_pointer()
+-        scroll = self.ruler.canvas.get_scroll_offsets()[0]
+-        t = (x + scroll) / self.ruler.scale
++        t = x / self.ruler.scale
+         self.cursor.value = t
+ 
+         # If the mouse button is down, try to find the canvas item under the cursor.
+@@ -743,7 +734,7 @@
+ 
+             # Search every row in every canvas
+             for obj in self.canvasList:
+-                y = obj.canvas.get_pointer()[1]
++                y = obj.canvas.window.get_pointer()[1]
+                 for row in obj.rows:
+                     if y >= row.top and y <= row.bottom:
+ 
+@@ -762,17 +753,17 @@
+ 
+     def appendCanvas(self, label, obj):
+         """Add a new canvas-bearing object to our stack of scrolling widgets"""
+-        obj.canvas.set_hadjustment(self.scroll.hAdjust[0])
++        obj.canvasViewPort.set_hadjustment(self.scroll.hAdjust[0])
+ 
+         labelWidget = gtk.Label(label)
+         labelWidget.set_alignment(0, 0)
+ 
+         group = gtk.SizeGroup(gtk.SIZE_GROUP_VERTICAL)
+         group.add_widget(labelWidget)
+-        group.add_widget(obj.canvas)
++        group.add_widget(obj.canvasViewPort)
+ 
+         self.leftHeading.pack_start(labelWidget, False, padding=self.vPadding)
+-        self.canvasStack.pack_start(obj.canvas, False, padding=self.vPadding)
++        self.canvasStack.pack_start(obj.canvasViewPort, False, padding=self.vPadding)
+ 
+         self.leftHeading.pack_start(gtk.HSeparator(), False)
+         self.canvasStack.pack_start(gtk.HSeparator(), False)
+@@ -781,6 +772,11 @@
+         self.canvasStack.show_all()
+         self.canvasList.append(obj)
+ 
++        # motion events dont seem to like working for widgets inside a vbox
++        obj.canvasViewPort.add_events(gtk.gdk.POINTER_MOTION_HINT_MASK |
++                gtk.gdk.POINTER_MOTION_MASK)
++        obj.canvasViewPort.connect_after('motion-notify-event', self.mouseEvent)
++
+     def handleEvent(self, event):
+         # Find a pipe to send transactions to
+         if isinstance(event, Types.Transaction):
+@@ -1302,10 +1298,9 @@
+         self.status.watchSelection(tlist.selectionInfo)
+ 
+         paned = gtk.VPaned()
+-        if gnomecanvas:
+-            timing = TimingDiagram(self)
+-            self.status.watchCursor(timing.cursor)
+-            paned.add1(timing.root)
++        timing = TimingDiagram(self)
++        self.status.watchCursor(timing.cursor)
++        paned.add1(timing.root)
+         paned.add2(tlist.root)
+         paned.set_position(250)
+ 
