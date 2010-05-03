@@ -1,9 +1,9 @@
 Index: vusb-analyzer
 ===================================================================
---- vusb-analyzer	(revision 20)
+--- vusb-analyzer	(revision 41)
 +++ vusb-analyzer	(working copy)
 @@ -22,7 +22,7 @@
-     follower = Log.Follower(filename, parser(sink.queue), ui.status.queue, tailMode)
+     follower = Log.Follower(filename, parser(sink.eventQueue), ui.status.progressQueue, tailMode)
      Decode.attachView(ui)
  
 -    gtk.gdk.threads_init()
@@ -32,7 +32,7 @@ Index: VUsbTools/Canvas.py
 +# This implements the basic cairo canvas used in the 
 +# vusb-analyzer user interface.
 +#
-+# Copyright (C) 2009 Daniel Newton. Licensed under the MIT
++# Copyright (C) 2010 Daniel Newton. Licensed under the MIT
 +# License, please see the README.txt. All rights reserved.
 +#
 +
@@ -265,9 +265,22 @@ Index: VUsbTools/Canvas.py
 +
 +    win.show_all()    
 +    gtk.main()
+Index: VUsbTools/Decode.py
+===================================================================
+--- VUsbTools/Decode.py	(revision 41)
++++ VUsbTools/Decode.py	(working copy)
+@@ -50,6 +50,8 @@
+ 
+     def registerModules(self, parentModule):
+         """Automatically register all modules found within the supplied parent module"""
++        # TODO: this doesnt work with py2exe as modules are placed in libary.zip
++        return
+         path = os.path.split(parentModule.__file__)[0]
+         for name in os.listdir(path):
+             if name.lower().endswith(".py") and name[0] not in ('_', '.'):
 Index: VUsbTools/Diff.py
 ===================================================================
---- VUsbTools/Diff.py	(revision 20)
+--- VUsbTools/Diff.py	(revision 41)
 +++ VUsbTools/Diff.py	(working copy)
 @@ -164,8 +164,7 @@
          timingBox = gtk.VBox(True)
@@ -281,7 +294,7 @@ Index: VUsbTools/Diff.py
  
 Index: VUsbTools/Types.py
 ===================================================================
---- VUsbTools/Types.py	(revision 20)
+--- VUsbTools/Types.py	(revision 41)
 +++ VUsbTools/Types.py	(working copy)
 @@ -16,13 +16,6 @@
  import binascii
@@ -299,7 +312,7 @@ Index: VUsbTools/Types.py
  except ImportError:
 Index: VUsbTools/Views.py
 ===================================================================
---- VUsbTools/Views.py	(revision 20)
+--- VUsbTools/Views.py	(revision 41)
 +++ VUsbTools/Views.py	(working copy)
 @@ -3,8 +3,7 @@
  # Micah Dowty <micah@vmware.com>
@@ -309,7 +322,7 @@ Index: VUsbTools/Views.py
 -# for gnomecanvas.
 +# for vusb-analyzer.
  #
- # Copyright (C) 2005-2009 VMware, Inc. Licensed under the MIT
+ # Copyright (C) 2005-2010 VMware, Inc. Licensed under the MIT
  # License, please see the README.txt. All rights reserved.
 @@ -12,16 +11,8 @@
  
@@ -560,7 +573,7 @@ Index: VUsbTools/Views.py
      def handleEvent(self, event):
          # Find a pipe to send transactions to
          if isinstance(event, Types.Transaction):
-@@ -1302,10 +1298,9 @@
+@@ -1311,10 +1307,9 @@
          self.status.watchSelection(tlist.selectionInfo)
  
          paned = gtk.VPaned()
