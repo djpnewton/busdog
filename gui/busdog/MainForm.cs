@@ -448,6 +448,24 @@ namespace busdog
                 maxTraces = Convert.ToUInt32(s);
             }
         }
+
+        private void btnCopyToClipboard_Click(object sender, EventArgs e)
+        {
+            lvTraces.CopyToClipboard(false);
+        }
+
+        private void btnCopySelectedToClipboard_Click(object sender, EventArgs e)
+        {
+            lvTraces.CopyToClipboard(true);
+        }
+
+        private void btnSaveToFile_Click(object sender, EventArgs e)
+        {
+            SaveFileDialog fd = new SaveFileDialog();
+            fd.Filter = "Text Files|.txt";
+            if (fd.ShowDialog() == DialogResult.OK)
+                System.IO.File.WriteAllText(fd.FileName, lvTraces.CopyContents(false));
+        }
     }
 
     public class BufferedListView : ListView
@@ -472,6 +490,40 @@ namespace busdog
         {
             SendMessage(Handle, WM_SETREDRAW, true, 0);
             Refresh();
+        }
+
+        public string CopyContents(bool onlySelectedRows)
+        {
+            StringBuilder buffer = new StringBuilder();
+
+            // header
+            for (int i = 0; i < Columns.Count; i++)
+            {
+                buffer.Append(Columns[i].Text);
+                buffer.Append("\t");
+            }
+            buffer.Append("\r\n");
+
+            // rows
+            for (int i = 0; i < Items.Count; i++)
+            {
+                if (!onlySelectedRows || Items[i].Selected)
+                {
+                    for (int j = 0; j < Columns.Count; j++)
+                    {
+                        buffer.Append(Items[i].SubItems[j].Text);
+                        buffer.Append("\t");
+                    }
+                    buffer.Append("\r\n");
+                }
+            }
+
+            return buffer.ToString();
+        }
+
+        public void CopyToClipboard(bool onlySelectedRows)
+        {
+            Clipboard.SetText(CopyContents(onlySelectedRows).ToString());  
         }
     }
 }

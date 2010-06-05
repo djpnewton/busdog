@@ -1,3 +1,11 @@
+2010-06-05  Daniel Newton  <djpnewton@gmail.com>
+
+	* gui/busdog/MainForm.cs:
+	* gui/busdog/MainForm.Designer.cs:
+	* gui/busdog/MainForm.resx: Added "Copy Traces", "Copy Selected Traces"
+	and "Save to File" functions
+
+
 2009-11-26  Daniel Newton  <djpnewton@gmail.com>
 
 	* gui/busdog/MainForm.cs: Shutdown redrawing on trace list when updating

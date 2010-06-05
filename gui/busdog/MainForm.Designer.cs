@@ -35,7 +35,6 @@
             this.cbAutoTrace = new System.Windows.Forms.CheckBox();
             this.tvDevices = new System.Windows.Forms.TreeView();
             this.tabTrace = new System.Windows.Forms.TabPage();
-            this.tscTrace = new System.Windows.Forms.ToolStripContainer();
             this.lvTraces = new busdog.BufferedListView();
             this.chId = new System.Windows.Forms.ColumnHeader();
             this.chType = new System.Windows.Forms.ColumnHeader();
@@ -49,6 +48,9 @@
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.lbMaxTraces = new System.Windows.Forms.ToolStripLabel();
             this.cbMaxTraces = new System.Windows.Forms.ToolStripComboBox();
+            this.btnCopyToClipboard = new System.Windows.Forms.ToolStripButton();
+            this.btnCopySelectedToClipboard = new System.Windows.Forms.ToolStripButton();
+            this.btnSaveToFile = new System.Windows.Forms.ToolStripButton();
             this.tabSetup = new System.Windows.Forms.TabPage();
             this.filterControl = new busdog.FilterControl();
             this.gbTraceList = new System.Windows.Forms.GroupBox();
@@ -62,12 +64,14 @@
             this.btnReinstall = new System.Windows.Forms.Button();
             this.btnUninstall = new System.Windows.Forms.Button();
             this.tmrDeviceChange = new System.Windows.Forms.Timer(this.components);
+            this.BottomToolStripPanel = new System.Windows.Forms.ToolStripPanel();
+            this.TopToolStripPanel = new System.Windows.Forms.ToolStripPanel();
+            this.RightToolStripPanel = new System.Windows.Forms.ToolStripPanel();
+            this.LeftToolStripPanel = new System.Windows.Forms.ToolStripPanel();
+            this.ContentPanel = new System.Windows.Forms.ToolStripContentPanel();
             this.tabControl.SuspendLayout();
             this.tabDevices.SuspendLayout();
             this.tabTrace.SuspendLayout();
-            this.tscTrace.ContentPanel.SuspendLayout();
-            this.tscTrace.TopToolStripPanel.SuspendLayout();
-            this.tscTrace.SuspendLayout();
             this.tsTrace.SuspendLayout();
             this.tabSetup.SuspendLayout();
             this.gbTraceList.SuspendLayout();
@@ -125,7 +129,8 @@
             // 
             // tabTrace
             // 
-            this.tabTrace.Controls.Add(this.tscTrace);
+            this.tabTrace.Controls.Add(this.lvTraces);
+            this.tabTrace.Controls.Add(this.tsTrace);
             this.tabTrace.Location = new System.Drawing.Point(4, 22);
             this.tabTrace.Name = "tabTrace";
             this.tabTrace.Padding = new System.Windows.Forms.Padding(3);
@@ -133,24 +138,6 @@
             this.tabTrace.TabIndex = 1;
             this.tabTrace.Text = "Trace";
             this.tabTrace.UseVisualStyleBackColor = true;
-            // 
-            // tscTrace
-            // 
-            // 
-            // tscTrace.ContentPanel
-            // 
-            this.tscTrace.ContentPanel.Controls.Add(this.lvTraces);
-            this.tscTrace.ContentPanel.Size = new System.Drawing.Size(371, 329);
-            this.tscTrace.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tscTrace.Location = new System.Drawing.Point(3, 3);
-            this.tscTrace.Name = "tscTrace";
-            this.tscTrace.Size = new System.Drawing.Size(371, 354);
-            this.tscTrace.TabIndex = 1;
-            this.tscTrace.Text = "toolStripContainer1";
-            // 
-            // tscTrace.TopToolStripPanel
-            // 
-            this.tscTrace.TopToolStripPanel.Controls.Add(this.tsTrace);
             // 
             // lvTraces
             // 
@@ -166,7 +153,7 @@
             this.lvTraces.Font = new System.Drawing.Font("Courier New", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lvTraces.FullRowSelect = true;
             this.lvTraces.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
-            this.lvTraces.Location = new System.Drawing.Point(0, 0);
+            this.lvTraces.Location = new System.Drawing.Point(3, 28);
             this.lvTraces.Name = "lvTraces";
             this.lvTraces.Size = new System.Drawing.Size(371, 329);
             this.lvTraces.TabIndex = 3;
@@ -203,16 +190,19 @@
             // 
             // tsTrace
             // 
-            this.tsTrace.Dock = System.Windows.Forms.DockStyle.None;
+            this.tsTrace.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
             this.tsTrace.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.btnStartTraces,
             this.btnClearTraces,
             this.toolStripSeparator1,
             this.lbMaxTraces,
-            this.cbMaxTraces});
-            this.tsTrace.Location = new System.Drawing.Point(3, 0);
+            this.cbMaxTraces,
+            this.btnCopyToClipboard,
+            this.btnCopySelectedToClipboard,
+            this.btnSaveToFile});
+            this.tsTrace.Location = new System.Drawing.Point(3, 3);
             this.tsTrace.Name = "tsTrace";
-            this.tsTrace.Size = new System.Drawing.Size(311, 25);
+            this.tsTrace.Size = new System.Drawing.Size(371, 25);
             this.tsTrace.TabIndex = 4;
             this.tsTrace.Text = "tsTrace";
             // 
@@ -257,8 +247,38 @@
             "1000",
             "10000"});
             this.cbMaxTraces.Name = "cbMaxTraces";
-            this.cbMaxTraces.Size = new System.Drawing.Size(121, 25);
+            this.cbMaxTraces.Size = new System.Drawing.Size(119, 25);
             this.cbMaxTraces.SelectedIndexChanged += new System.EventHandler(this.cbMaxTraces_SelectedIndexChanged);
+            // 
+            // btnCopyToClipboard
+            // 
+            this.btnCopyToClipboard.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.btnCopyToClipboard.Image = ((System.Drawing.Image)(resources.GetObject("btnCopyToClipboard.Image")));
+            this.btnCopyToClipboard.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnCopyToClipboard.Name = "btnCopyToClipboard";
+            this.btnCopyToClipboard.Size = new System.Drawing.Size(71, 22);
+            this.btnCopyToClipboard.Text = "Copy Traces";
+            this.btnCopyToClipboard.Click += new System.EventHandler(this.btnCopyToClipboard_Click);
+            // 
+            // btnCopySelectedToClipboard
+            // 
+            this.btnCopySelectedToClipboard.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.btnCopySelectedToClipboard.Image = ((System.Drawing.Image)(resources.GetObject("btnCopySelectedToClipboard.Image")));
+            this.btnCopySelectedToClipboard.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnCopySelectedToClipboard.Name = "btnCopySelectedToClipboard";
+            this.btnCopySelectedToClipboard.Size = new System.Drawing.Size(115, 17);
+            this.btnCopySelectedToClipboard.Text = "Copy Selected Traces";
+            this.btnCopySelectedToClipboard.Click += new System.EventHandler(this.btnCopySelectedToClipboard_Click);
+            // 
+            // btnSaveToFile
+            // 
+            this.btnSaveToFile.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.btnSaveToFile.Image = ((System.Drawing.Image)(resources.GetObject("btnSaveToFile.Image")));
+            this.btnSaveToFile.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnSaveToFile.Name = "btnSaveToFile";
+            this.btnSaveToFile.Size = new System.Drawing.Size(67, 17);
+            this.btnSaveToFile.Text = "Save to File";
+            this.btnSaveToFile.Click += new System.EventHandler(this.btnSaveToFile_Click);
             // 
             // tabSetup
             // 
@@ -419,6 +439,42 @@
             this.tmrDeviceChange.Interval = 1000;
             this.tmrDeviceChange.Tick += new System.EventHandler(this.tmrDeviceChange_Tick);
             // 
+            // BottomToolStripPanel
+            // 
+            this.BottomToolStripPanel.Location = new System.Drawing.Point(0, 0);
+            this.BottomToolStripPanel.Name = "BottomToolStripPanel";
+            this.BottomToolStripPanel.Orientation = System.Windows.Forms.Orientation.Horizontal;
+            this.BottomToolStripPanel.RowMargin = new System.Windows.Forms.Padding(3, 0, 0, 0);
+            this.BottomToolStripPanel.Size = new System.Drawing.Size(0, 0);
+            // 
+            // TopToolStripPanel
+            // 
+            this.TopToolStripPanel.Location = new System.Drawing.Point(0, 0);
+            this.TopToolStripPanel.Name = "TopToolStripPanel";
+            this.TopToolStripPanel.Orientation = System.Windows.Forms.Orientation.Horizontal;
+            this.TopToolStripPanel.RowMargin = new System.Windows.Forms.Padding(3, 0, 0, 0);
+            this.TopToolStripPanel.Size = new System.Drawing.Size(0, 0);
+            // 
+            // RightToolStripPanel
+            // 
+            this.RightToolStripPanel.Location = new System.Drawing.Point(0, 0);
+            this.RightToolStripPanel.Name = "RightToolStripPanel";
+            this.RightToolStripPanel.Orientation = System.Windows.Forms.Orientation.Horizontal;
+            this.RightToolStripPanel.RowMargin = new System.Windows.Forms.Padding(3, 0, 0, 0);
+            this.RightToolStripPanel.Size = new System.Drawing.Size(0, 0);
+            // 
+            // LeftToolStripPanel
+            // 
+            this.LeftToolStripPanel.Location = new System.Drawing.Point(0, 0);
+            this.LeftToolStripPanel.Name = "LeftToolStripPanel";
+            this.LeftToolStripPanel.Orientation = System.Windows.Forms.Orientation.Horizontal;
+            this.LeftToolStripPanel.RowMargin = new System.Windows.Forms.Padding(3, 0, 0, 0);
+            this.LeftToolStripPanel.Size = new System.Drawing.Size(0, 0);
+            // 
+            // ContentPanel
+            // 
+            this.ContentPanel.Size = new System.Drawing.Size(371, 354);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -433,11 +489,7 @@
             this.tabDevices.ResumeLayout(false);
             this.tabDevices.PerformLayout();
             this.tabTrace.ResumeLayout(false);
-            this.tscTrace.ContentPanel.ResumeLayout(false);
-            this.tscTrace.TopToolStripPanel.ResumeLayout(false);
-            this.tscTrace.TopToolStripPanel.PerformLayout();
-            this.tscTrace.ResumeLayout(false);
-            this.tscTrace.PerformLayout();
+            this.tabTrace.PerformLayout();
             this.tsTrace.ResumeLayout(false);
             this.tsTrace.PerformLayout();
             this.tabSetup.ResumeLayout(false);
@@ -453,19 +505,8 @@
         private System.Windows.Forms.TabControl tabControl;
         private System.Windows.Forms.TabPage tabDevices;
         private System.Windows.Forms.TabPage tabTrace;
-        private BufferedListView lvTraces;
-        private System.Windows.Forms.ColumnHeader chId;
-        private System.Windows.Forms.ColumnHeader chType;
-        private System.Windows.Forms.ColumnHeader chTime;
-        private System.Windows.Forms.ColumnHeader chLength;
-        private System.Windows.Forms.ColumnHeader chHex;
-        private System.Windows.Forms.ColumnHeader chAscii;
         private System.Windows.Forms.Timer tmrDeviceChange;
         private System.Windows.Forms.TreeView tvDevices;
-        private System.Windows.Forms.ToolStripContainer tscTrace;
-        private System.Windows.Forms.ToolStrip tsTrace;
-        private System.Windows.Forms.ToolStripButton btnStartTraces;
-        private System.Windows.Forms.ToolStripButton btnClearTraces;
         private System.Windows.Forms.TabPage tabSetup;
         private System.Windows.Forms.Button btnUninstall;
         private System.Windows.Forms.Button btnReinstall;
@@ -479,9 +520,27 @@
         private System.Windows.Forms.CheckBox cbLength;
         private FilterControl filterControl;
         private System.Windows.Forms.CheckBox cbAutoTrace;
+        private BufferedListView lvTraces;
+        private System.Windows.Forms.ColumnHeader chId;
+        private System.Windows.Forms.ColumnHeader chType;
+        private System.Windows.Forms.ColumnHeader chTime;
+        private System.Windows.Forms.ColumnHeader chLength;
+        private System.Windows.Forms.ColumnHeader chHex;
+        private System.Windows.Forms.ColumnHeader chAscii;
+        private System.Windows.Forms.ToolStrip tsTrace;
+        private System.Windows.Forms.ToolStripButton btnStartTraces;
+        private System.Windows.Forms.ToolStripButton btnClearTraces;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStripLabel lbMaxTraces;
         private System.Windows.Forms.ToolStripComboBox cbMaxTraces;
+        private System.Windows.Forms.ToolStripButton btnCopyToClipboard;
+        private System.Windows.Forms.ToolStripButton btnCopySelectedToClipboard;
+        private System.Windows.Forms.ToolStripPanel BottomToolStripPanel;
+        private System.Windows.Forms.ToolStripPanel TopToolStripPanel;
+        private System.Windows.Forms.ToolStripPanel RightToolStripPanel;
+        private System.Windows.Forms.ToolStripPanel LeftToolStripPanel;
+        private System.Windows.Forms.ToolStripContentPanel ContentPanel;
+        private System.Windows.Forms.ToolStripButton btnSaveToFile;
     }
 }
 
