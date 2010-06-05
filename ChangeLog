@@ -1,5 +1,13 @@
 2010-06-05  Daniel Newton  <djpnewton@gmail.com>
 
+	* gui/busdog/busdog.csproj:
+	* gui/busdog/busdog_icon.ico:
+	* gui/busdog/MainForm.Designer.cs:
+	* gui/busdog/MainForm.resx: Added user interface icons
+
+
+2010-06-05  Daniel Newton  <djpnewton@gmail.com>
+
 	* gui/busdog/MainForm.cs:
 	* gui/busdog/MainForm.Designer.cs:
 	* gui/busdog/MainForm.resx: Added "Copy Traces", "Copy Selected Traces"

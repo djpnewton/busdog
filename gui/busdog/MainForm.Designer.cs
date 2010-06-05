@@ -35,13 +35,6 @@
             this.cbAutoTrace = new System.Windows.Forms.CheckBox();
             this.tvDevices = new System.Windows.Forms.TreeView();
             this.tabTrace = new System.Windows.Forms.TabPage();
-            this.lvTraces = new busdog.BufferedListView();
-            this.chId = new System.Windows.Forms.ColumnHeader();
-            this.chType = new System.Windows.Forms.ColumnHeader();
-            this.chTime = new System.Windows.Forms.ColumnHeader();
-            this.chLength = new System.Windows.Forms.ColumnHeader();
-            this.chHex = new System.Windows.Forms.ColumnHeader();
-            this.chAscii = new System.Windows.Forms.ColumnHeader();
             this.tsTrace = new System.Windows.Forms.ToolStrip();
             this.btnStartTraces = new System.Windows.Forms.ToolStripButton();
             this.btnClearTraces = new System.Windows.Forms.ToolStripButton();
@@ -52,7 +45,6 @@
             this.btnCopySelectedToClipboard = new System.Windows.Forms.ToolStripButton();
             this.btnSaveToFile = new System.Windows.Forms.ToolStripButton();
             this.tabSetup = new System.Windows.Forms.TabPage();
-            this.filterControl = new busdog.FilterControl();
             this.gbTraceList = new System.Windows.Forms.GroupBox();
             this.cbAscii = new System.Windows.Forms.CheckBox();
             this.cbHex = new System.Windows.Forms.CheckBox();
@@ -69,6 +61,16 @@
             this.RightToolStripPanel = new System.Windows.Forms.ToolStripPanel();
             this.LeftToolStripPanel = new System.Windows.Forms.ToolStripPanel();
             this.ContentPanel = new System.Windows.Forms.ToolStripContentPanel();
+            this.imageList1 = new System.Windows.Forms.ImageList(this.components);
+            this.lvTraces = new busdog.BufferedListView();
+            this.chId = new System.Windows.Forms.ColumnHeader();
+            this.chType = new System.Windows.Forms.ColumnHeader();
+            this.chTime = new System.Windows.Forms.ColumnHeader();
+            this.chLength = new System.Windows.Forms.ColumnHeader();
+            this.chHex = new System.Windows.Forms.ColumnHeader();
+            this.chAscii = new System.Windows.Forms.ColumnHeader();
+            this.filterControl = new busdog.FilterControl();
+            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.tabControl.SuspendLayout();
             this.tabDevices.SuspendLayout();
             this.tabTrace.SuspendLayout();
@@ -84,6 +86,7 @@
             this.tabControl.Controls.Add(this.tabTrace);
             this.tabControl.Controls.Add(this.tabSetup);
             this.tabControl.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tabControl.ImageList = this.imageList1;
             this.tabControl.Location = new System.Drawing.Point(0, 0);
             this.tabControl.Name = "tabControl";
             this.tabControl.SelectedIndex = 0;
@@ -95,10 +98,11 @@
             // 
             this.tabDevices.Controls.Add(this.cbAutoTrace);
             this.tabDevices.Controls.Add(this.tvDevices);
-            this.tabDevices.Location = new System.Drawing.Point(4, 22);
+            this.tabDevices.ImageIndex = 0;
+            this.tabDevices.Location = new System.Drawing.Point(4, 23);
             this.tabDevices.Name = "tabDevices";
             this.tabDevices.Padding = new System.Windows.Forms.Padding(3);
-            this.tabDevices.Size = new System.Drawing.Size(377, 360);
+            this.tabDevices.Size = new System.Drawing.Size(377, 359);
             this.tabDevices.TabIndex = 0;
             this.tabDevices.Text = "Devices";
             this.tabDevices.UseVisualStyleBackColor = true;
@@ -107,7 +111,7 @@
             // 
             this.cbAutoTrace.AutoSize = true;
             this.cbAutoTrace.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.cbAutoTrace.Location = new System.Drawing.Point(3, 340);
+            this.cbAutoTrace.Location = new System.Drawing.Point(3, 339);
             this.cbAutoTrace.Name = "cbAutoTrace";
             this.cbAutoTrace.Size = new System.Drawing.Size(371, 17);
             this.cbAutoTrace.TabIndex = 2;
@@ -123,7 +127,7 @@
             this.tvDevices.Location = new System.Drawing.Point(3, 3);
             this.tvDevices.Name = "tvDevices";
             this.tvDevices.ShowNodeToolTips = true;
-            this.tvDevices.Size = new System.Drawing.Size(371, 354);
+            this.tvDevices.Size = new System.Drawing.Size(371, 353);
             this.tvDevices.TabIndex = 1;
             this.tvDevices.AfterCheck += new System.Windows.Forms.TreeViewEventHandler(this.tvDevices_AfterCheck);
             // 
@@ -131,62 +135,14 @@
             // 
             this.tabTrace.Controls.Add(this.lvTraces);
             this.tabTrace.Controls.Add(this.tsTrace);
-            this.tabTrace.Location = new System.Drawing.Point(4, 22);
+            this.tabTrace.ImageIndex = 1;
+            this.tabTrace.Location = new System.Drawing.Point(4, 23);
             this.tabTrace.Name = "tabTrace";
             this.tabTrace.Padding = new System.Windows.Forms.Padding(3);
-            this.tabTrace.Size = new System.Drawing.Size(377, 360);
+            this.tabTrace.Size = new System.Drawing.Size(377, 359);
             this.tabTrace.TabIndex = 1;
             this.tabTrace.Text = "Trace";
             this.tabTrace.UseVisualStyleBackColor = true;
-            // 
-            // lvTraces
-            // 
-            this.lvTraces.AllowColumnReorder = true;
-            this.lvTraces.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.chId,
-            this.chType,
-            this.chTime,
-            this.chLength,
-            this.chHex,
-            this.chAscii});
-            this.lvTraces.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.lvTraces.Font = new System.Drawing.Font("Courier New", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lvTraces.FullRowSelect = true;
-            this.lvTraces.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
-            this.lvTraces.Location = new System.Drawing.Point(3, 28);
-            this.lvTraces.Name = "lvTraces";
-            this.lvTraces.Size = new System.Drawing.Size(371, 329);
-            this.lvTraces.TabIndex = 3;
-            this.lvTraces.UseCompatibleStateImageBehavior = false;
-            this.lvTraces.View = System.Windows.Forms.View.Details;
-            // 
-            // chId
-            // 
-            this.chId.Text = "Id";
-            this.chId.Width = 30;
-            // 
-            // chType
-            // 
-            this.chType.Text = "Type";
-            this.chType.Width = 46;
-            // 
-            // chTime
-            // 
-            this.chTime.Text = "Time";
-            this.chTime.Width = 79;
-            // 
-            // chLength
-            // 
-            this.chLength.Text = "Length";
-            this.chLength.Width = 59;
-            // 
-            // chHex
-            // 
-            this.chHex.Text = "Hex";
-            // 
-            // chAscii
-            // 
-            this.chAscii.Text = "Ascii";
             // 
             // tsTrace
             // 
@@ -197,6 +153,7 @@
             this.toolStripSeparator1,
             this.lbMaxTraces,
             this.cbMaxTraces,
+            this.toolStripSeparator2,
             this.btnCopyToClipboard,
             this.btnCopySelectedToClipboard,
             this.btnSaveToFile});
@@ -209,21 +166,21 @@
             // btnStartTraces
             // 
             this.btnStartTraces.CheckOnClick = true;
-            this.btnStartTraces.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.btnStartTraces.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.btnStartTraces.Image = ((System.Drawing.Image)(resources.GetObject("btnStartTraces.Image")));
             this.btnStartTraces.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnStartTraces.Name = "btnStartTraces";
-            this.btnStartTraces.Size = new System.Drawing.Size(35, 22);
+            this.btnStartTraces.Size = new System.Drawing.Size(23, 22);
             this.btnStartTraces.Text = "Start";
             this.btnStartTraces.Click += new System.EventHandler(this.btnStartTraces_Click);
             // 
             // btnClearTraces
             // 
-            this.btnClearTraces.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.btnClearTraces.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.btnClearTraces.Image = ((System.Drawing.Image)(resources.GetObject("btnClearTraces.Image")));
             this.btnClearTraces.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnClearTraces.Name = "btnClearTraces";
-            this.btnClearTraces.Size = new System.Drawing.Size(36, 22);
+            this.btnClearTraces.Size = new System.Drawing.Size(23, 22);
             this.btnClearTraces.Text = "Clear";
             this.btnClearTraces.Click += new System.EventHandler(this.btnClearTraces_Click);
             // 
@@ -234,9 +191,12 @@
             // 
             // lbMaxTraces
             // 
+            this.lbMaxTraces.AutoToolTip = true;
+            this.lbMaxTraces.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.lbMaxTraces.Image = ((System.Drawing.Image)(resources.GetObject("lbMaxTraces.Image")));
             this.lbMaxTraces.Name = "lbMaxTraces";
-            this.lbMaxTraces.Size = new System.Drawing.Size(66, 22);
-            this.lbMaxTraces.Text = "Max Traces:";
+            this.lbMaxTraces.Size = new System.Drawing.Size(16, 22);
+            this.lbMaxTraces.Text = "Max Traces";
             // 
             // cbMaxTraces
             // 
@@ -252,32 +212,32 @@
             // 
             // btnCopyToClipboard
             // 
-            this.btnCopyToClipboard.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.btnCopyToClipboard.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.btnCopyToClipboard.Image = ((System.Drawing.Image)(resources.GetObject("btnCopyToClipboard.Image")));
             this.btnCopyToClipboard.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnCopyToClipboard.Name = "btnCopyToClipboard";
-            this.btnCopyToClipboard.Size = new System.Drawing.Size(71, 22);
+            this.btnCopyToClipboard.Size = new System.Drawing.Size(23, 22);
             this.btnCopyToClipboard.Text = "Copy Traces";
             this.btnCopyToClipboard.Click += new System.EventHandler(this.btnCopyToClipboard_Click);
             // 
             // btnCopySelectedToClipboard
             // 
-            this.btnCopySelectedToClipboard.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.btnCopySelectedToClipboard.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.btnCopySelectedToClipboard.Image = ((System.Drawing.Image)(resources.GetObject("btnCopySelectedToClipboard.Image")));
             this.btnCopySelectedToClipboard.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnCopySelectedToClipboard.Name = "btnCopySelectedToClipboard";
-            this.btnCopySelectedToClipboard.Size = new System.Drawing.Size(115, 17);
+            this.btnCopySelectedToClipboard.Size = new System.Drawing.Size(23, 22);
             this.btnCopySelectedToClipboard.Text = "Copy Selected Traces";
             this.btnCopySelectedToClipboard.Click += new System.EventHandler(this.btnCopySelectedToClipboard_Click);
             // 
             // btnSaveToFile
             // 
-            this.btnSaveToFile.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.btnSaveToFile.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.btnSaveToFile.Image = ((System.Drawing.Image)(resources.GetObject("btnSaveToFile.Image")));
             this.btnSaveToFile.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnSaveToFile.Name = "btnSaveToFile";
-            this.btnSaveToFile.Size = new System.Drawing.Size(67, 17);
-            this.btnSaveToFile.Text = "Save to File";
+            this.btnSaveToFile.Size = new System.Drawing.Size(23, 22);
+            this.btnSaveToFile.Text = "Save Traces to File";
             this.btnSaveToFile.Click += new System.EventHandler(this.btnSaveToFile_Click);
             // 
             // tabSetup
@@ -285,26 +245,13 @@
             this.tabSetup.Controls.Add(this.filterControl);
             this.tabSetup.Controls.Add(this.gbTraceList);
             this.tabSetup.Controls.Add(this.gbFilterDriver);
-            this.tabSetup.Location = new System.Drawing.Point(4, 22);
+            this.tabSetup.ImageIndex = 2;
+            this.tabSetup.Location = new System.Drawing.Point(4, 23);
             this.tabSetup.Name = "tabSetup";
-            this.tabSetup.Size = new System.Drawing.Size(377, 360);
+            this.tabSetup.Size = new System.Drawing.Size(377, 359);
             this.tabSetup.TabIndex = 2;
             this.tabSetup.Text = "Setup";
             this.tabSetup.UseVisualStyleBackColor = true;
-            // 
-            // filterControl
-            // 
-            this.filterControl.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
-                        | System.Windows.Forms.AnchorStyles.Left)
-                        | System.Windows.Forms.AnchorStyles.Right)));
-            this.filterControl.Filter = "";
-            this.filterControl.Include = busdog.FilterInclude.Include;
-            this.filterControl.LengthMatch_ = busdog.LengthMatch.GreaterThen;
-            this.filterControl.Location = new System.Drawing.Point(8, 156);
-            this.filterControl.Name = "filterControl";
-            this.filterControl.Size = new System.Drawing.Size(361, 196);
-            this.filterControl.TabIndex = 4;
-            this.filterControl.Type = busdog.FilterType.Length;
             // 
             // gbTraceList
             // 
@@ -475,12 +422,89 @@
             // 
             this.ContentPanel.Size = new System.Drawing.Size(371, 354);
             // 
+            // imageList1
+            // 
+            this.imageList1.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imageList1.ImageStream")));
+            this.imageList1.TransparentColor = System.Drawing.Color.Transparent;
+            this.imageList1.Images.SetKeyName(0, "computer.png");
+            this.imageList1.Images.SetKeyName(1, "text_align_left.png");
+            this.imageList1.Images.SetKeyName(2, "cog.png");
+            // 
+            // lvTraces
+            // 
+            this.lvTraces.AllowColumnReorder = true;
+            this.lvTraces.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.chId,
+            this.chType,
+            this.chTime,
+            this.chLength,
+            this.chHex,
+            this.chAscii});
+            this.lvTraces.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.lvTraces.Font = new System.Drawing.Font("Courier New", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lvTraces.FullRowSelect = true;
+            this.lvTraces.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
+            this.lvTraces.Location = new System.Drawing.Point(3, 28);
+            this.lvTraces.Name = "lvTraces";
+            this.lvTraces.Size = new System.Drawing.Size(371, 328);
+            this.lvTraces.TabIndex = 3;
+            this.lvTraces.UseCompatibleStateImageBehavior = false;
+            this.lvTraces.View = System.Windows.Forms.View.Details;
+            // 
+            // chId
+            // 
+            this.chId.Text = "Id";
+            this.chId.Width = 30;
+            // 
+            // chType
+            // 
+            this.chType.Text = "Type";
+            this.chType.Width = 46;
+            // 
+            // chTime
+            // 
+            this.chTime.Text = "Time";
+            this.chTime.Width = 79;
+            // 
+            // chLength
+            // 
+            this.chLength.Text = "Length";
+            this.chLength.Width = 59;
+            // 
+            // chHex
+            // 
+            this.chHex.Text = "Hex";
+            // 
+            // chAscii
+            // 
+            this.chAscii.Text = "Ascii";
+            // 
+            // filterControl
+            // 
+            this.filterControl.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+                        | System.Windows.Forms.AnchorStyles.Left)
+                        | System.Windows.Forms.AnchorStyles.Right)));
+            this.filterControl.Filter = "";
+            this.filterControl.Include = busdog.FilterInclude.Include;
+            this.filterControl.LengthMatch_ = busdog.LengthMatch.GreaterThen;
+            this.filterControl.Location = new System.Drawing.Point(8, 156);
+            this.filterControl.Name = "filterControl";
+            this.filterControl.Size = new System.Drawing.Size(361, 195);
+            this.filterControl.TabIndex = 4;
+            this.filterControl.Type = busdog.FilterType.Length;
+            // 
+            // toolStripSeparator2
+            // 
+            this.toolStripSeparator2.Name = "toolStripSeparator2";
+            this.toolStripSeparator2.Size = new System.Drawing.Size(6, 25);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(385, 386);
             this.Controls.Add(this.tabControl);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "MainForm";
             this.Text = "BusDog";
             this.Load += new System.EventHandler(this.MainForm_Load);
@@ -541,6 +565,8 @@
         private System.Windows.Forms.ToolStripPanel LeftToolStripPanel;
         private System.Windows.Forms.ToolStripContentPanel ContentPanel;
         private System.Windows.Forms.ToolStripButton btnSaveToFile;
+        private System.Windows.Forms.ImageList imageList1;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
     }
 }
 
