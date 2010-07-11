@@ -1,8 +1,13 @@
 2010-07-11  Daniel Newton  <djpnewton@gmail.com>
 
 	* filter/busdog.inx: Added serial and parallel port filtering
+
 	* make_package.bat: Updated build to work with latest WDK and on 64bit
 	systems
+
+	* filter/BusDog.rc:
+	* gui/busdog/Properties/AssemblyInfo.cs: Updated version numbers to
+	0.2.1	
 
 2010-06-05  Daniel Newton  <djpnewton@gmail.com>
 
