@@ -17,8 +17,9 @@ CopyFiles = @busdog.sys
 AddReg = ClassFilter_AddReg
  
 [ClassFilter_AddReg]
-HKLM, System\CurrentControlSet\Control\Class\%USB_GLASS_GUID%, LowerFilters, 0x00010008, busdog
-HKLM, System\CurrentControlSet\Control\Class\%HID_GLASS_GUID%, LowerFilters, 0x00010008, busdog
+HKLM, System\CurrentControlSet\Control\Class\%USB_CLASS_GUID%, LowerFilters, 0x00010008, busdog
+HKLM, System\CurrentControlSet\Control\Class\%HID_CLASS_GUID%, LowerFilters, 0x00010008, busdog
+HKLM, System\CurrentControlSet\Control\Class\%PORT_CLASS_GUID%, UpperFilters, 0x00010008, busdog
 
 [DefaultInstall.NT.Services]
 AddService = busdog, , clasfilt_Service_Inst, clasfilt_EventLog_Inst
@@ -77,5 +78,6 @@ SERVICE_DEMAND_START  = 3
 SERVICE_ERROR_IGNORE  = 0
 REG_EXPAND_SZ         = 0x00020000
 REG_DWORD             = 0x00010001
-USB_GLASS_GUID        = {36FC9E60-C465-11CF-8056-444553540000}  
-HID_GLASS_GUID        = {745A17A0-74D3-11D0-B6FE-00A0C90F57DA}  
+USB_CLASS_GUID        = {36FC9E60-C465-11CF-8056-444553540000}  
+HID_CLASS_GUID        = {745A17A0-74D3-11D0-B6FE-00A0C90F57DA}  
+PORT_CLASS_GUID       = {4D36E978-E325-11CE-BFC1-08002BE10318}

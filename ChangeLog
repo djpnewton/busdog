@@ -1,3 +1,7 @@
+2010-07-11  Daniel Newton  <djpnewton@gmail.com>
+
+	* filter/busdog.inx: Added serial and parallel port filtering
+
 2010-06-05  Daniel Newton  <djpnewton@gmail.com>
 
 	* gui/busdog/busdog.csproj:
