@@ -1,8 +1,8 @@
 :: ddk environment
 if "%1"=="64" (
-    call C:\WinDDK\7600.16385.0\bin\setenv.bat C:\WinDDK\7600.16385.0\ fre x64 WNET no_oacr 
+    call C:\WinDDK\7600.16385.1\bin\setenv.bat C:\WinDDK\7600.16385.1\ fre x64 WNET no_oacr 
 ) else (
-    call C:\WinDDK\7600.16385.0\bin\setenv.bat C:\WinDDK\7600.16385.0\ fre x86 WXP no_oacr 
+    call C:\WinDDK\7600.16385.1\bin\setenv.bat C:\WinDDK\7600.16385.1\ fre x86 WXP no_oacr 
 )
 if "%1"=="64" (
     set other_arch_spec=amd64
@@ -38,11 +38,12 @@ xcopy /Y %BASEDIR%\redist\DIFx\dpinst\MultiLin\%_BUILDARCH%\dpinst.exe gui\drive
 if errorlevel 1 goto error
 
 ::visual studio environment
-::if "%1"=="64" (
-  ::  call "C:\Program Files\Microsoft Visual Studio 9.0\VC\vcvarsall.bat" x86_amd64
-::) else (
+if exist "c:\Program Files (x86)" (
+    call "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\vcvarsall.bat" x86
+) else (
     call "C:\Program Files\Microsoft Visual Studio 9.0\VC\vcvarsall.bat" x86
-::)
+)
+if errorlevel 1 goto error
 cd %~dp0
 
 :: build busdog gui
@@ -63,6 +64,7 @@ goto end
 echo +++++++++++++++++++++
 echo +++Error in build!+++
 echo +++++++++++++++++++++
+cd %~dp0
 exit /B 1
 
 :end
