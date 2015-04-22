@@ -1,7 +1,7 @@
 [Version]
 signature = "$Windows NT$"
 DriverPackageType = ClassFilter
-DriverVer=10/20/2009,0.2.0.0
+DriverVer=10/20/2009,0.2.2.0
 
 [SourceDisksNames]
 1 = %ClasFilt.MediaDesc%

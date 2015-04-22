@@ -1,6 +1,8 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "busdog", "busdog\busdog.csproj", "{59EDC1D1-62ED-4D29-B114-A327F0D2A563}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "driverRes", "driverRes\driverRes.csproj", "{D6699CF9-34CB-46B3-9AAB-9D54F9CCDB95}"
