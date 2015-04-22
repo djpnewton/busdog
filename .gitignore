@@ -1,0 +1,11 @@
+*~
+*.swp
+
+*.opensdf
+*.sdf
+
+x64
+x86
+obj
+bin
+Win7Release
