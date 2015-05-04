@@ -243,8 +243,8 @@ namespace busdog
 				// the managed object devBroadcastDeviceInterface
 
 				Marshal.PtrToStructure(devBroadcastDeviceInterfaceBuffer, devBroadcastDeviceInterface);
-				
-				if ((deviceNotificationHandle.ToInt32() == IntPtr.Zero.ToInt32()))
+
+                if ((deviceNotificationHandle.ToInt64() == IntPtr.Zero.ToInt64()))
 				{
 					return false;
 				}
