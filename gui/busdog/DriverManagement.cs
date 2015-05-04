@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Runtime.InteropServices; 
 using System.IO;
 using System.Reflection;
@@ -85,9 +86,12 @@ namespace busdog
                         // success! found busdog service and binary path
                         QUERY_SERVICE_CONFIG qsConfig = new QUERY_SERVICE_CONFIG();
                         Marshal.PtrToStructure(ptr, qsConfig);
+                        // replace non-expanded environment var
+                        var binarypath = qsConfig.lpBinaryPathName;
+                        binarypath = Regex.Replace(binarypath, "\\\\SystemRoot\\\\", "", RegexOptions.IgnoreCase);
                         // get version info of busdog binary
                         string sysroot = Environment.ExpandEnvironmentVariables("%systemroot%");
-                        versionInfo = FileVersionInfo.GetVersionInfo(sysroot + "\\" + qsConfig.lpBinaryPathName);
+                        versionInfo = FileVersionInfo.GetVersionInfo(sysroot + "\\" + binarypath);
                         // driver is installed and got all needed info
                         drvInstalled = true;
                     }
