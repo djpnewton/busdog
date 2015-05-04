@@ -108,7 +108,7 @@ namespace busdog
         const string infFile = "busdog.inf";
         const string sysFile = "busdog.sys";
         const string dpinstFile = "dpinst.exe";
-        const string coinstFile = "WdfCoInstaller01009.dll";
+        const string coinstFile = "WdfCoInstaller01011.dll";
         const string wdfInfSection = "busdog.NT.Wdf";
         const string wdfPreDeviceInstall = "WdfPreDeviceInstall";
         const string wdfPostDeviceInstall = "WdfPostDeviceInstall";
